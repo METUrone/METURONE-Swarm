@@ -99,9 +99,9 @@ def run_sequence(scf,sequence):
 
 		### LOG INFOS (Konum ve Batarya çek)
 		lg_stab = LogConfig(name='log', period_in_ms=10)
-		#lg_stab.add_variable('stateEstimate.x', 'float')
-		#lg_stab.add_variable('stateEstimate.y', 'float')
-		#lg_stab.add_variable('stateEstimate.z', 'float')
+		lg_stab.add_variable('stateEstimate.x', 'float')
+		lg_stab.add_variable('stateEstimate.y', 'float')
+		lg_stab.add_variable('stateEstimate.z', 'float')
 		lg_stab.add_variable('pm.vbat' , 'float')
 
 		logger = SyncLogger(scf, lg_stab)
@@ -117,11 +117,11 @@ def run_sequence(scf,sequence):
 		
 
 		while uavList[DroneID].info["Aktif"] == "Evet":
-			#info = logger._queue.get()[1]
+			info = logger._queue.get()[1]
 			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
-
+			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
 			speed = uavList[DroneID].calculate_speed()
-			print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
+			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
 			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 		
