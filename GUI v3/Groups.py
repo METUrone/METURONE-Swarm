@@ -1,3 +1,5 @@
+from Uav import *
+
 class Groups:
 
     def init_group(self,uav_count):
@@ -9,6 +11,7 @@ class Groups:
         
         self.groups.append(self.group)
     def SplitGroup(self,first,uavs):
+
 
         if len(uavs) == 0 :
             return
@@ -24,7 +27,7 @@ class Groups:
         self.groups.append(new_group)
         
 
-    def AppendGroups(self,first,second):
+    def AppendGroups(self,second,first):
 
         if first == second :
             return

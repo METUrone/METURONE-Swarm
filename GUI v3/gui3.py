@@ -7,6 +7,7 @@ from PyQt5.sip import simplewrapper
 
 from commander import *
 from formations import *
+from munkres import Munkres
 
 
 class Map(QWidget):
@@ -60,6 +61,14 @@ class Map(QWidget):
         qp.setPen(penC)
         qp.drawLine(0,self.size/2,self.size,self.size/2)
         qp.drawLine(self.size/2,0,self.size/2,self.size)
+
+        penB = QtGui.QPen(Qt.blue,8)
+        qp.setPen(penB)
+        for uav in uavList:
+            if uav.info["Aktif"] == "Evet":
+                qp.drawEllipse(400+(uav.info["X"]*100)-5,400+(uav.info["Y"]*100)-5,10,10)
+
+
         qp.setPen(penP)
         for i in self.points:
             qp.drawEllipse(i[0],i[1], 10, 10)
@@ -311,6 +320,8 @@ class Form_SetFormation(QFormLayout):
 		self.addRow(QLabel("Grup : " ) , self.group)
 
 		#submit ve close buttonu
+
+
 		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 		buttonbox.accepted.connect(self.submit)
 		buttonbox.rejected.connect(self.CloseDialog)
@@ -583,6 +594,26 @@ class MapLayout(QHBoxLayout):
 			i+=1
 
 		self.CloseDialog()
+
+		initial_cost = []
+	
+		for uav in uavList:
+			if uav.info["Aktif"] == "Evet":
+				dist = []
+				for pose in self.calculatedposes:
+					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
+				initial_cost.append(dist)
+
+
+		hungarian = Munkres()
+
+		indexes = hungarian.compute(initial_cost)
+
+		for index in indexes : 
+			uavList[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			print (uavList[index[0]].dest)
+
+
 		
 		
 	def CloseDialog(self):

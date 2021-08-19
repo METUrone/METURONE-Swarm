@@ -25,7 +25,7 @@ import subprocess, sys
 # Change uris and sequences according to your setup
 logging.basicConfig(level=logging.ERROR)
 
-deques = [collections.deque(maxlen=1)] * 2
+deques = [collections.deque(maxlen=1)] * 3
 
 def Pos_thread(sequence):
 	append = sequence[0]
@@ -114,15 +114,16 @@ def run_sequence(scf,sequence):
 	
 		uavList[DroneID].info["Aktif"] = "Evet"
 
-		
-
+		uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
+		print(uavList[DroneID].dest)
 		while uavList[DroneID].info["Aktif"] == "Evet":
 			info = logger._queue.get()[1]
 			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
+
 			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
 			speed = uavList[DroneID].calculate_speed()
 			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
-			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+			#cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 		
 
