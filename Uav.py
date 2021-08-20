@@ -41,11 +41,11 @@ class Uav():
 		else :
 		    return number
 
-	def distance_to_dest(self):
-		return math.sqrt(pow(self.dest[0]-self.info["X"],2) + pow(self.dest[1]-self.info["Y"],2) + pow(self.dest[2]-self.info["Z"],2))
+	def distance_to_dest(self , dest ):
+		return math.sqrt(pow(dest[0]-self.info["X"],2) + pow(dest[1]-self.info["Y"],2) + pow(dest[2]-self.info["Z"],2))
 
 	def SetMode(self):
-		if self.distance_to_dest() < self.hover_circle:
+		if self.distance_to_dest(self.dest) < self.hover_circle / 2:
 			self.mode = "Hover"
 			return 
 
@@ -86,13 +86,13 @@ class Uav():
 
 
 		self.SetMode()
-		print(self.info["Drone No"] , self.mode)
+		#print(self.info["Drone No"] , self.mode)
 
 		speed_x = ((self.dest[0] - self.info["X"]) ) * speed_constant 
 		speed_y = ((self.dest[1] - self.info["Y"]) ) * speed_constant 
 		speed_z = ((self.dest[2] - self.info["Z"]) ) * speed_constant 
 
-		print(self.mode)
+		#print(self.mode)
 
 		if self.mode == "Hover":
 			collision_speed = self.HoverCollision(collision_constant)
@@ -103,7 +103,7 @@ class Uav():
 		if self.mode == "Hover":
 			speed_x = self.clip(-0.2,0.2,speed_x)
 			speed_y = self.clip(-0.2,0.2,speed_y)
-			speed_z = self.clip(-0.05,0.05,speed_z)
+			speed_z = self.clip(-0.1,0.1,speed_z)
 
 
 

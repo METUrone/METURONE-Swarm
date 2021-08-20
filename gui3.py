@@ -9,6 +9,8 @@ from PyQt5.sip import simplewrapper
 from commander import *
 from formations import *
 from munkres import Munkres
+from formation import *
+from formation_utils import *
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -189,15 +191,18 @@ class PositionForm(QHBoxLayout):
 		
 		x = QFormLayout()
 		self.xPos = QLineEdit()
+		self.xPos.setText("0")
 		x.addRow("X :", self.xPos)
 
 
 		y = QFormLayout()
 		self.yPos = QLineEdit()
+		self.yPos.setText("0")
 		y.addRow("Y : ",self.yPos)
 
 		z = QFormLayout()
 		self.zPos = QLineEdit()
+		self.zPos.setText("1.0")
 		z.addRow("Z :",self.zPos)
 
 		self.addLayout(x)
@@ -310,8 +315,9 @@ class Form_SetFormation(QFormLayout):
 		self.positionform = PositionForm()
 		self.addRow("Merkez : ",self.positionform)
 
-		# Center (x , y , z) seçimi
+
 		self.distance = QLineEdit()
+		self.distance.setText("1.0")
 		self.addRow("Swarmlar arası uzaklık : ",self.distance)
 
 		#grup seçimi
@@ -329,12 +335,42 @@ class Form_SetFormation(QFormLayout):
 
 	def submit(self):
 
-		#################################
-		if type(formations.formations[self.cb.currentText()]) == int:
-			print("Cokgen")
+		group = groups.groups[int(self.group.text())]
+		distance = float(self.distance.text())
+		center_x = float(self.positionform.xPos.text())
+		center_y = float(self.positionform.yPos.text())
+		center_z = float(self.positionform.zPos.text())
+		print(center_x,center_y,center_z)
+		formation_side = formations.formations[self.cb.currentText()]
 
-		
 		#################################
+		formation = Formation()
+		formation.Cokgen(max(formation_side,len(group)), distance , formation_side , Pose(center_x,center_y,center_z))
+		poses = formation.GetSides()
+	
+		#################################
+
+		initial_cost = []
+		uav_ids = []
+		for uav in uavList:
+			if uav.info["Aktif"] == "Evet" and uav.info["Grup"] == int(self.group.text()):
+				dist = []
+				uav_ids.append(uav.info["Drone No"])
+				for pose in poses:
+					dist.append(uav.distance_to_dest([pose[0] , pose[1] , pose[2]]))
+				initial_cost.append(dist)
+
+
+		hungarian = Munkres()
+
+		indexes = hungarian.compute(initial_cost)
+
+		for index in indexes:
+			uav_id = uav_ids[index[0]]
+			pose = poses[index[1]]
+			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
+			print(uav_id , pose)
+
 
 		self.CloseDialog()
 		
@@ -611,7 +647,7 @@ class MapLayout(QHBoxLayout):
 
 		for index in indexes : 
 			uavList[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
-			print (uavList[index[0]].dest)
+
 
 
 		
@@ -802,15 +838,15 @@ class Window(QWidget):
 		self.table.update_labels()
 
 def signal_handler(sig, frame):
-    print('You pressed Ctrl+C!')
-    curr = datetime.datetime.now()
-    idx = 0
-    while idx < logs:
-        with open("logs/"+str(curr)+str(idx),"w+") as f:
-            #f.write("Starting!")
-            f.write("X,Y,Z,Vx,Vy,Vz\n")
-            f.write(logs[idx])
-        idx+=1
+	print('You pressed Ctrl+C!')
+	curr = datetime.datetime.now()
+	idx = 0
+	while idx < logs:
+		with open("logs/"+str(curr)+str(idx),"w+") as f:
+			#f.write("Starting!")
+			f.write("X,Y,Z,Vx,Vy,Vz\n")
+			f.write(logs[idx])
+		idx+=1
 	sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)

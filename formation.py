@@ -7,7 +7,7 @@ from formation_utils import *
 class Formation:
 
 	# formation elements
-	center = pose(0.0, 0.0, 0.0)
+	center = Pose(0.0, 0.0, 0.0)
 	sides = []
 	ihaArasiUzaklik = 0.0
 	ihaSayisi = 0
@@ -19,17 +19,22 @@ class Formation:
 	height = 0.0
 	angle = 0.0
 	initialAngle = 0.0
-	initialPosition = pose(0.0, 0.0, 0.0)
+	initialPosition = Pose(0.0, 0.0, 0.0)
 
 	# constructor
-	def __init__(self, formationConstant):
+	def __init__(self):
 
 		
-		self.formationConstant = formationConstant
-		self.initialPosition = pose(0,0,0)
+		self.height
+		self.initialPosition = Pose(0,0,0)
 	# some getters used throughout the code
-	def getSides(self):
-		return self.sides
+	def GetSides(self):
+		sides = []
+		for side in self.sides:
+			sides.append([side.x,side.y,self.height])
+
+		return sides
+
 
 	def getCurrentAngle(self):
 		return self.angle
@@ -54,13 +59,13 @@ class Formation:
 		if (ihaSayisi <= 0):
 			return sides
 
-		addition = pose(
+		addition = Pose(
 				ihaArasiUzaklik*m.cos(2*M_PI/kenar+self.angle),
 				ihaArasiUzaklik*m.sin(2*M_PI/kenar+self.angle),
 				0.0)
 		curr = self.initialPosition
 		for i in range(0,ihaSayisi):
-				curr_append = pose(curr.x, curr.y, curr.z)
+				curr_append = Pose(curr.x, curr.y, curr.z)
 				sides.append(curr_append)
 				curr.x += addition.x
 				curr.y += addition.y
@@ -75,6 +80,7 @@ class Formation:
 	def Cokgen(self, ihaSayisi, ihaArasiUzaklik,kenar, center=0, angle=0):
 		self.ihaSayisi = ihaSayisi
 		self.ihaArasiUzaklik = ihaArasiUzaklik
+		self.height = center.z
 		print("Cokgen kenar: ", kenar);
 		# self.initialPosition
 		if (self.sides != []):
@@ -83,8 +89,8 @@ class Formation:
 		k = self.ihaSayisi//kenar;
 		
 		insiderAngle = (kenar-2)*m.pi/(kenar*2)
-		self.initialPosition.x = center.x - self.ihaArasiUzaklik*k/2
-		self.initialPosition.y = (center.y - m.tan(insiderAngle)*self.ihaArasiUzaklik*k/2) 
+		self.initialPosition.x = center.x + self.ihaArasiUzaklik*k/2
+		self.initialPosition.y = (center.y - m.tan(insiderAngle)*self.ihaArasiUzaklik*k/2)
 		
 		if (self.ihaSayisi%kenar == 0):
 			self.sides = self.PartialCokgen(kenar, self.ihaArasiUzaklik, self.ihaSayisi, center);
@@ -122,7 +128,7 @@ class Formation:
 		ihaSayisi = 5;
 		sides = [];
 
-		addition = pose(
+		addition = Pose(
 				self.ihaArasiUzaklik*m.cos(2*M_PI/kenar+self.angle),
 				self.ihaArasiUzaklik*m.sin(2*M_PI/kenar+self.angle),
 				0.0);
@@ -142,7 +148,7 @@ class Formation:
 			addition = rotate(addition, self.angle);
 		
 		for i in range(ihaSayisi):
-			curr_append = pose(curr.x, curr.y, curr.z)
+			curr_append = Pose(curr.x, curr.y, curr.z)
 			sides.append(curr_append);
 
 			curr.x += addition.x;
@@ -174,7 +180,7 @@ class Formation:
 		if (self.sides != []):
 			self.sides = []
 
-		addition = pose(
+		addition = Pose(
 				self.ihaArasiUzaklik*m.cos(2*M_PI/3+self.angle),
 				self.ihaArasiUzaklik*m.sin(2*M_PI/3+self.angle),
 				0.0)
@@ -182,7 +188,7 @@ class Formation:
 		curr = self.initialPosition;
 
 		for i in range(self.ihaSayisi):
-			curr_append = pose(curr.x, curr.y, curr.z)
+			curr_append = Pose(curr.x, curr.y, curr.z)
 			self.sides.append(curr_append);
 
 			curr.x += addition.x;
@@ -259,7 +265,7 @@ class Formation:
 			self.initialAngle = angle
 			return
 		
-		axis = pose(self.initialPosition.x-center.x, self.initialPosition.y-center.y, self.initialPosition.z-center.z)
+		axis = Pose(self.initialPosition.x-center.x, self.initialPosition.y-center.y, self.initialPosition.z-center.z)
 
 		for i in range(self.ihaSayisi):
 			axis.x = self.sides[i].x - center.x
