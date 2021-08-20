@@ -36,9 +36,17 @@ class Groups:
 
         for i in new_group:
             self.groups[first].append(i)
-            uavList[i].info["Grup"] = first
 
         self.groups[first].sort()
 
         new_group = self.groups.pop(second)
+        i = 0
+        for group in self.groups:
+            for uav in group:
+                uavList[uav].info["Grup"] = i
+            i += 1
+
+        print(self.groups)
+
+        
 groups = Groups()

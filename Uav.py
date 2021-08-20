@@ -127,7 +127,6 @@ for i in range(Max_Uav_Number):
 for uav in uavList:
     uav.init_Swarm(uavList)
 
-uavList[1].SetDest(0,-1,1)
 
 
 

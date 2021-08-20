@@ -844,8 +844,10 @@ def signal_handler(sig, frame):
 	while idx < logs:
 		with open("logs/"+str(curr)+str(idx),"w+") as f:
 			#f.write("Starting!")
-			f.write("X,Y,Z,Vx,Vy,Vz\n")
+			f.write("X,Y,Z,Vx,Vy,Vz, idx"+str(idx) + "\n")
 			f.write(logs[idx])
+			print("X,Y,Z,Vx,Vy,Vz, idx"+str(idx))
+			print(logs[idx])
 		idx+=1
 	sys.exit(0)
 
