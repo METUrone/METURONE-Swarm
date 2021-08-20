@@ -1,4 +1,5 @@
 import sys
+import signal
 from typing import List
 from PyQt5.QtWidgets import *
 from PyQt5 import QtGui
@@ -8,7 +9,6 @@ from PyQt5.sip import simplewrapper
 from commander import *
 from formations import *
 from munkres import Munkres
-
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -800,6 +800,20 @@ class Window(QWidget):
 
 	def showTime(self):
 		self.table.update_labels()
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    curr = datetime.datetime.now()
+    idx = 0
+    while idx < logs:
+        with open("logs/"+str(curr)+str(idx),"w+") as f:
+            #f.write("Starting!")
+            f.write("X,Y,Z,Vx,Vy,Vz\n")
+            f.write(logs[idx])
+        idx+=1
+	sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 App = QApplication(sys.argv)
