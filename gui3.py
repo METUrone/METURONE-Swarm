@@ -12,6 +12,9 @@ from munkres import Munkres
 from formation import *
 from formation_utils import *
 
+App = QApplication(sys.argv)
+from simulation import *
+
 class Map(QWidget):
     def __init__(self,form,size = 800):
         super().__init__()
@@ -797,7 +800,19 @@ class Window(QWidget):
 
 
 		#video Player
+		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
+		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
+		buttonHover = "QPushButton::hover{background-color : yellow}"
+
+		self.simulation = Simulation()
+		self.simulation_aktif = True
+		simulation_button = QPushButton("Simülasyonu Başlat/Durdur")
+		simulation_button.clicked.connect(self.SimMode)
+		simulation_button.setStyleSheet(buttonIdle + buttonPressed + buttonHover)
+
 		videoPlayerLayout = QVBoxLayout()
+		videoPlayerLayout.addWidget(simulation_button)
+		videoPlayerLayout.addWidget(self.simulation)
 		videoPlayerbox = QGroupBox()
 		videoPlayerbox.setLayout(videoPlayerLayout)
 		videoPlayerbox.setMinimumWidth(960)
@@ -815,7 +830,7 @@ class Window(QWidget):
 		logbox.setMinimumHeight(240)
 		
 		
-
+		self.i = 0
 
 
 		#set-up
@@ -828,6 +843,13 @@ class Window(QWidget):
 		self.showMaximized()
 
 		self.initTimer()
+		self.initTimerSimulation()
+	
+	def SimMode(self):
+		if self.simulation_aktif:
+			self.simulation_aktif = False
+		else :
+			self.simulation_aktif = True
 
 	def initTimer(self):
 		self.timer=QTimer()
@@ -836,6 +858,18 @@ class Window(QWidget):
 
 	def showTime(self):
 		self.table.update_labels()
+
+	def initTimerSimulation(self):
+		self.timer=QTimer()
+		self.timer.timeout.connect(self.showTimeSim)
+		self.timer.start(40)
+
+	def showTimeSim(self):
+		group = [[1,1,self.i],[0,0,self.i],[1,0,self.i]]
+		self.i +=0.1
+		groups = [group]
+		self.simulation.sc.CalculateAllLines(groups,self.simulation_aktif)
+		self.simulation.sc.draw()
 
 def signal_handler(sig, frame):
 	print('You pressed Ctrl+C!')
@@ -854,7 +888,7 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-App = QApplication(sys.argv)
+
 w = Window()
 sys.exit(App.exec())
 
