@@ -282,8 +282,7 @@ class Formation:
 		t.sleep(rate)
 
 	def assignDrones(self, currentPoses):
-		# TODO: Implement Hungarian algorithm
-		initial_cost = [[sqrt(length2(dest, drone)) for drone in currentPoses] for dest in self.sides]
+		initial_cost = [[length2(dest, drone) for drone in currentPoses] for dest in self.sides]
 		hungarian = Munkres()
 		
 		# Returns a list of tuples that is of the form

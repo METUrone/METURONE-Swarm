@@ -1,5 +1,5 @@
 #Swarmdaki her bir uav Uav clasının bir objesi
-from Utils import *
+from utils import *
 
 
 import datetime
@@ -13,7 +13,7 @@ Max_Uav_Number = 10 # change
 class Uav():
 	def __init__(self,DroneId , StartPos = [0,0,1]):
 		self.info = {"Drone No" : DroneId , "Aktif" : "Hayır" , "X" : 0 , "Y" : 0 , "Z" : 0 ,"Batarya" : 0,"Grup" : 0} # GUI için gerekli
-		self.dest = StartPos # Dronun ilk konumu  -- Utilsdeki Vec3 ile veriniz
+		self.dest = StartPos # Dronun ilk konumu  -- Pose ile veriniz
 
 		self.mode = "Hover"
 

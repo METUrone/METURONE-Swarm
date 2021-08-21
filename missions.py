@@ -1,20 +1,15 @@
-
-class Vec3:
-    def __init__(self,x,y,z):
-        self.x = x
-        self.y = y
-        self.z = z
+from utils import Pose
 
 class SetFormation:
     def __init__(self,x,y,z , formationSide , distance , group):
-        self.Center = Vec3(x,y,z)
+        self.Center = Pose(x,y,z)
         self.formationSide = formationSide
         self.distance = distance
         self.group = group
 
 class SetHareket:
     def __init__(self,x,y,z,group):
-        self.Hedef = Vec3(x,y,z)
+        self.Hedef = Pose(x,y,z)
         self.group = group
 
 class Groups:

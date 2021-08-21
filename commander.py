@@ -13,9 +13,9 @@ from swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
 
-from Uav import *
+from uav import *
 from missions import *
-from Groups import *
+from groups import *
 
 
 import math
