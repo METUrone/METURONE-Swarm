@@ -3,7 +3,7 @@ import math as m
 from munkres import Munkres
 
 M_PI = m.pi
-from formation_utils import *
+from utils import *
 class Formation:
 
 	# formation elements

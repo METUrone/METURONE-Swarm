@@ -26,7 +26,15 @@ def floor_angle(angle):
     
     return (remainder+after_point)*M_PI/180;
 
+# TODO CHANGE THIS!
+class Formations:
+	def __init__(self):
+		self.formations = {"Üçgen" : 3, "Kare" : 4 , "Beşgen " : 5 , "Altıgen" : 6 , "Yedigen" : 7 , "Sekizgen" : 8, "Dokuzgen" : 9 , "Ongen" : 10}
+		
+	def AddFormation(self , name , dronePoses) :
+		self.formations[name] = dronePoses
 
+formations = Formations()
 
 if __name__ == "__main__":
 	print(length2(Pose(1,2,3),Pose(1,2,5)))

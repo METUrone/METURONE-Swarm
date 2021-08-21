@@ -7,10 +7,9 @@ from PyQt5.QtCore import QRect, Qt, center,QTimer,QDateTime
 from PyQt5.sip import simplewrapper
 
 from commander import *
-from formations import *
 from munkres import Munkres
 from formation import *
-from formation_utils import *
+from utils import *
 import os
 
 class Map(QWidget):
