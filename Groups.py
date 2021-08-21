@@ -22,7 +22,7 @@ class Groups:
         for i in uavs:
             self.groups[first].remove(i)
             new_group.append(i)
-            uavList[i].info["Grup"] = len(self.groups)
+            uav_list[i].info["Grup"] = len(self.groups)
             
         self.groups.append(new_group)
         
@@ -43,7 +43,7 @@ class Groups:
         i = 0
         for group in self.groups:
             for uav in group:
-                uavList[uav].info["Grup"] = i
+                uav_list[uav].info["Grup"] = i
             i += 1
 
         print(self.groups)

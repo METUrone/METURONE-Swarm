@@ -67,9 +67,9 @@ class Map(QWidget):
 
         penB = QtGui.QPen(Qt.blue,8)
         qp.setPen(penB)
-        for uav in uavList:
+        for uav in uav_list:
             if uav.info["Aktif"] == "Evet":
-                qp.drawEllipse(400+(uav.info["X"]*100)-5,400+(uav.info["Y"]*100)-5,10,10)
+                qp.drawEllipse(400+(uav.PoseX*100)-5,400+(uav.PoseY*100)-5,10,10)
 
 
         qp.setPen(penP)
@@ -123,7 +123,7 @@ class Table(QTableWidget):
 		super().__init__()
 		
 		self.setStyleSheet("background-color : lightblue")
-		self.setRowCount(Max_Uav_Number)
+		self.setRowCount(MAX_UAV_NUMBER)
 		self.setEditTriggers(QAbstractItemView.NoEditTriggers )
 		self.setColumnCount(7)
 		self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -143,7 +143,7 @@ class Table(QTableWidget):
 	
 	def init_labels(self):
 
-		self.labels = list(uavList[0].info.keys())
+		self.labels = list(uav_list[0].info.keys())
 
 		self.swarminfos = []
 
@@ -160,9 +160,9 @@ class Table(QTableWidget):
 	def update_labels(self):
 
 
-		for i in range(Max_Uav_Number):
+		for i in range(MAX_UAV_NUMBER):
 
-			tlist = list(uavList[i].info.values())
+			tlist = list(uav_list[i].info.values())
 			
 			for j in range(len(self.labels)):
 
@@ -387,7 +387,7 @@ class Form_SetFormation(QFormLayout):
 
 		initial_cost = []
 		uav_ids = []
-		for uav in uavList:
+		for uav in uav_list:
 			if uav.info["Aktif"] == "Evet" and uav.info["Grup"] == int(self.group.text()):
 				dist = []
 				uav_ids.append(uav.info["Drone No"])
@@ -403,7 +403,7 @@ class Form_SetFormation(QFormLayout):
 		for index in indexes:
 			uav_id = uav_ids[index[0]]
 			pose = poses[index[1]]
-			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
+			uav_list[uav_id].SetDest(pose[0],pose[1],pose[2])
 			print(uav_id , pose)
 
 
@@ -661,14 +661,14 @@ class MapLayout(QHBoxLayout):
 
 		i = 0
 		for pose in self.calculatedposes :
-			uavList[i].SetDest(pose[0],pose[1],self.height.text())
+			uav_list[i].SetDest(pose[0],pose[1],self.height.text())
 			i+=1
 
 		self.CloseDialog()
 
 		initial_cost = []
 	
-		for uav in uavList:
+		for uav in uav_list:
 			if uav.info["Aktif"] == "Evet":
 				dist = []
 				for pose in self.calculatedposes:
@@ -681,7 +681,7 @@ class MapLayout(QHBoxLayout):
 		indexes = hungarian.compute(initial_cost)
 
 		for index in indexes : 
-			uavList[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			uav_list[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
 
 
 
@@ -740,7 +740,7 @@ class buttons(QGridLayout):
 		self.CreateDialog(form,dialog)
 
 	def drone_dissconnect(self):
-		for uav in uavList:
+		for uav in uav_list:
 			uav.info["Aktif"] = "Hayır"
 
 

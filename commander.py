@@ -26,12 +26,13 @@ import subprocess, sys
 logging.basicConfig(level=logging.ERROR)
 
 deques = [collections.deque(maxlen=1)] * 3
-logs = [""]*Max_Uav_Number
+logs = [""]*MAX_UAV_NUMBER
 
 def Pos_thread(sequence):
 	append = sequence[0]
 	process = sequence[1]
 	print(append)
+	error_count = 0
 	while 1:
 		x = datetime.datetime.now()
 		for line in iter(process.stdout.readline, ""):
@@ -39,19 +40,18 @@ def Pos_thread(sequence):
 
 
 			lst = line.split("/")[1:]
-			uavList[int(lst[0]) - 1 ].info["X"] = float(lst[1])
-			uavList[int(lst[0]) - 1].info["Y"] = float(lst[2])
-			uavList[int(lst[0]) - 1].info["Z"] = float(lst[3])
-			#print("pose thread time is",datetime.datetime.now() - x, line)
-			#print(line)
+			uav_list[int(lst[0])-1].UpdatePose(	float(lst[1]),
+												float(lst[2]),
+												float(lst[3]))
 
-		print("problem!")
-	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	# DO NOT DELETE THIS
+		print("ERROR: Cannot read UAV Pose. Trying again.")
+		error_count+=1
+		# If the error continues, shut down the thread
+		if error_count > 10000:
+			break
+	print("ERROR: UAV Pose cannot be read, closing thread.")
 
 class Commander:
-
-
 	def init_swarm(self,uris):
 		self.seq_args = {}
 		
@@ -79,9 +79,9 @@ class Commander:
 	
 def land(cf,DroneID ,height = 0.1,time1 = 0.5):
 	landTime = time.time() + time1
-	uavList[DroneID].SetDest(uavList[DroneID].info["X"],uavList[DroneID].info["Y"] , height)
-	while uavList[DroneID].info["Z"] > 0.2 :
-		speed = uavList[DroneID].calculate_speed()
+	uav_list[DroneID].SetDest(uav_list[DroneID].PoseX,uav_list[DroneID].PoseY , height)
+	while uav_list[DroneID].PoseZ > 0.2 :
+		speed = uav_list[DroneID].calculate_speed()
 		cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 
@@ -113,17 +113,17 @@ def run_sequence(scf,sequence):
 		DroneID = sequence[0]
 
 	
-		uavList[DroneID].info["Aktif"] = "Evet"
+		uav_list[DroneID].info["Aktif"] = "Evet"
 
-		uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
-		print(uavList[DroneID].dest)
-		while uavList[DroneID].info["Aktif"] == "Evet":
+		uav_list[DroneID].SetDest(uav_list[DroneID].PoseX , uav_list[DroneID].oseY,1.0)
+		print(uav_list[DroneID].dest)
+		while uav_list[DroneID].info["Aktif"] == "Evet":
 			info = logger._queue.get()[1]
-			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
-			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
-			speed = uavList[DroneID].calculate_speed()
-			logs[DroneID] += str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
-			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
+			#uav_list[DroneID].UpdatePose(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
+			uav_list[DroneID].info["Batarya"] = info["pm.vbat"]
+			speed = uav_list[DroneID].calculate_speed()
+			logs[DroneID] += str(uav_list[DroneID].PoseX) + "," + str(uav_list[DroneID].PoseY) + "," + str(uav_list[DroneID].PoseZ) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
+			#print(DroneID,[ "pos = " ,uav_list[DroneID].PoseX ,uav_list[DroneID].info["Y"],uav_list[DroneID].info["Z"]] ,speed)
 			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 		
