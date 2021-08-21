@@ -295,7 +295,7 @@ class Form_Connect(QFormLayout  ):
 			with open("config/URIs.txt","r") as f:
 				uri = "ss" # no meaning other than saitss
 				for uri in f.readlines():
-					print(uri)
+
 					self.AddSwarmURI(uri)
 		else:
 			msg = QMessageBox()
@@ -605,6 +605,13 @@ class MapLayout(QHBoxLayout):
 		self.height.setAlignment(Qt.AlignCenter)
 		self.form.addRow("Yükseklik",self.height )
 
+
+		self.group = QLineEdit()
+		self.group.setText("0")
+		self.group.setMaximumWidth(100)
+		self.group.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Grup",self.group )
+
 		self.uzaklık = QLineEdit()
 		self.uzaklık.setText("0.5")
 		self.uzaklık.setMaximumWidth(100)
@@ -657,6 +664,9 @@ class MapLayout(QHBoxLayout):
 			self.labels.append(label)
 	def submit(self):
 
+		if(len(self.calculatedposes)) != len(groups.groups[int(self.group.text())]):
+			self.PopUp()
+			return
 
 		i = 0
 		for pose in self.calculatedposes :
@@ -666,10 +676,12 @@ class MapLayout(QHBoxLayout):
 		self.CloseDialog()
 
 		initial_cost = []
+		uav_ids = []
 	
 		for uav in uavList:
-			if uav.info["Aktif"] == "Evet":
+			if uav.info["Aktif"] == "Evet" and uav.info["Grup"] == int(self.group.text()):
 				dist = []
+				uav_ids.append(uav.info["Drone No"])
 				for pose in self.calculatedposes:
 					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
 				initial_cost.append(dist)
@@ -680,10 +692,14 @@ class MapLayout(QHBoxLayout):
 		indexes = hungarian.compute(initial_cost)
 
 		for index in indexes : 
-			uavList[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			uavList[uav_ids[index[0]]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
 
 
-
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( str(len(groups.groups[int(self.group.text())])) + " Pozisyon Gerekli " + str(len(self.calculatedposes)) + " Pozisyon Verildi" )
+		msg.exec_()
 		
 		
 	def CloseDialog(self):

@@ -100,12 +100,13 @@ class Uav():
 			speed_y += collision_speed[1]
 			speed_z += collision_speed[2]
 
-		if self.mode == "Hover":
 			speed_x = self.clip(-0.2,0.2,speed_x)
 			speed_y = self.clip(-0.2,0.2,speed_y)
 			speed_z = self.clip(-0.1,0.1,speed_z)
 
-
+		speed_x = self.clip(-0.4,0.4,speed_x)
+		speed_y = self.clip(-0.4,0.4,speed_y)
+		speed_z = self.clip(-0.4,0.4,speed_z)
 
 		return [speed_x,speed_y,speed_z]
 

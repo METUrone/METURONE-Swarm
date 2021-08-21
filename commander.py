@@ -80,11 +80,13 @@ class Commander:
 def land(cf,DroneID ,height = 0.1,time1 = 0.5):
 	landTime = time.time() + time1
 	uavList[DroneID].SetDest(uavList[DroneID].info["X"],uavList[DroneID].info["Y"] , height)
-	while uavList[DroneID].info["Z"] > 0.2 :
+	while uavList[DroneID].info["Z"] > 0.25 :
 		speed = uavList[DroneID].calculate_speed()
 		cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
-
+	uavList[DroneID].info["X"] = 0.0
+	uavList[DroneID].info["Y"] = 0.0
+	uavList[DroneID].info["Z"] = 0.0
 def wait_for_param_download(scf):
 	while not scf.cf.param.is_updated:
 		time.sleep(1.0)
@@ -124,8 +126,11 @@ def run_sequence(scf,sequence):
 			speed = uavList[DroneID].calculate_speed()
 			logs[DroneID] += str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
 			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
-			#cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
+			if(uavList[DroneID].info["Batarya"] < 0):
+				uavList[DroneID].info["Aktif"] = "Hayır"
+				groups.groups[uavList[DroneID].info["Grup"]].remove(DroneID)
 		
 
 		land(cf , DroneID)
