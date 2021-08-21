@@ -23,22 +23,18 @@ class MplCanvas(FigureCanvasQTAgg):
         fig = Figure(figsize=(size,size), dpi=dpi)
         self.axes = fig.add_subplot(111,projection = '3d')
         super(MplCanvas, self).__init__(fig)
-        self.axes.set_zlim(0,5)
-        self.axes.set_xlim(-floor,floor)
-        self.axes.set_ylim(-floor,floor)
         
-        self.vertices = []
-
+        self.floor = floor
 
 
 
     def ClearGraph(self):
-        for i in self.vertices:
-            try:
-                i.remove()
-            except :
-                pass
+        self.axes.clear()
 
+
+        self.axes.set_zlim(0,self.floor)
+        self.axes.set_xlim(-self.floor,self.floor)
+        self.axes.set_ylim(-self.floor,self.floor)
     
         
 
@@ -60,10 +56,12 @@ class MplCanvas(FigureCanvasQTAgg):
                 vertices.append([points[i],points[(i+1)%len(points)],points[i]])
             
 
-            self.vertices.append(self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2]))
+            self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2])
 
             
-            self.vertices.append(self.axes.add_collection3d(Poly3DCollection(vertices, facecolors='red', linewidths=3, edgecolors=self.colors[i], alpha=0.5)))
+            self.axes.add_collection3d(Poly3DCollection(vertices,  linewidths=3, edgecolors=self.colors[i], alpha=0.5))
+
+            i+=1
 
 
 
@@ -100,14 +98,14 @@ class Simulation(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Create the maptlotlib FigureCanvas object,
-        # which defines a single set of axes as self.axes.
-        self.sc = MplCanvas( 5, 8, dpi=100)
+        self.sc = MplCanvas( 5, 3, dpi=100)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)
-        #self.setCentralWidget(sc)
+        
         self.setLayout(hbox)
+
+
 
 
 

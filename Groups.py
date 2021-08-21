@@ -2,10 +2,12 @@ from Uav import *
 
 class Groups:
 
+    def __init__(self):
+
+        self.groups = []
     def init_group(self,uav_count):
         self.uav_count = uav_count
         self.group = []
-        self.groups = []
         for i in range(self.uav_count):
             self.group.append(i)
         

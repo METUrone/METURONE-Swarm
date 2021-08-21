@@ -124,7 +124,7 @@ def run_sequence(scf,sequence):
 			speed = uavList[DroneID].calculate_speed()
 			logs[DroneID] += str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
 			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
-			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+			#cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 		
 

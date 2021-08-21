@@ -11,7 +11,7 @@ from formations import *
 from munkres import Munkres
 from formation import *
 from formation_utils import *
-
+import os
 App = QApplication(sys.argv)
 from simulation import *
 
@@ -235,7 +235,7 @@ class Form_Connect(QFormLayout  ):
 		self.Lines = []
 
 		tmp = QLineEdit()
-		tmp.setText("radio://0/80/2M/E7E7E7E701")
+		tmp.setText("radio://0/XX/2M/E7E7E7E7XX")
 		self.Lines.append(tmp)
 		self.addRow("URI1 : ", tmp)
 
@@ -247,11 +247,17 @@ class Form_Connect(QFormLayout  ):
 		rmButton.setMaximumWidth(100)
 		rmButton.clicked.connect(self.RemoveSwarm)
 
+		loadButton = QPushButton("Önceki URI yükle")
+		loadButton.setMaximumWidth(150)
+		loadButton.clicked.connect(self.LoadURI)
+
 		hbox = QHBoxLayout()
 		hbox.addWidget(addButton)
 		hbox.addWidget(rmButton)
+		hbox.addWidget(loadButton)
 
 		self.addRow(hbox)
+		self.setVerticalSpacing(10)
 		
 
 		#submit ve close buttonu
@@ -261,8 +267,11 @@ class Form_Connect(QFormLayout  ):
 		self.addWidget(buttonbox)
 
 	def AddSwarm(self):
+		self.AddSwarmURI("radio://0/XX/2M/E7E7E7E7XX") # default URI
+
+	def AddSwarmURI(self,uri):
 		tmp = QLineEdit()
-		tmp.setText("radio://0/70/2M/E7E7E7E706")
+		tmp.setText(uri)
 		self.Lines.append(tmp)
 		self.insertRow(self.swarm_count,"URI"+str(self.swarm_count+1),tmp)
 		self.swarm_count +=1
@@ -273,17 +282,41 @@ class Form_Connect(QFormLayout  ):
 		self.removeRow(self.swarm_count-1)
 		self.swarm_count -=1
 
+	def RemoveSwarmAll(self):
+		while self.Lines:
+			del self.Lines[-1]
+			self.removeRow(self.swarm_count-1)
+			self.swarm_count -=1
 
+	def LoadURI(self):
+		if os.path.exists("config/URIs.txt") and os.stat("config/URIs.txt").st_size:
+			#cleaning
+			self.RemoveSwarmAll()
+			with open("config/URIs.txt","r") as f:
+				uri = "ss" # no meaning other than saitss
+				for uri in f.readlines():
+					print(uri)
+					self.AddSwarmURI(uri)
+		else:
+			msg = QMessageBox()
+			msg.setWindowTitle("BRUH MOMENT")
+			msg.setText("Konfigürasyon dosyası bozuk")
+			msg.exec_()
 
 	def submit(self):
 
 		for lines in self.Lines:
 			self.URIS.append(lines.text())
 
+		with open("config/URIs.txt","w") as f:
+			for uri in self.URIS:
+				f.write(uri)
+
 		groups.init_group(len(self.Lines))
 
 
 		commander.init_swarm(self.URIS)
+
 
 		self.CloseDialog()
 		
@@ -291,8 +324,6 @@ class Form_Connect(QFormLayout  ):
 		
 	def CloseDialog(self):
 		self.dialog.close()
-
-
 
 
 
@@ -830,8 +861,7 @@ class Window(QWidget):
 		logbox.setMinimumHeight(240)
 		
 		
-		self.i = 0
-
+	
 
 		#set-up
 		hbox.addWidget(videoPlayerbox)
@@ -843,7 +873,7 @@ class Window(QWidget):
 		self.showMaximized()
 
 		self.initTimer()
-		self.initTimerSimulation()
+		
 	
 	def SimMode(self):
 		if self.simulation_aktif:
@@ -854,22 +884,24 @@ class Window(QWidget):
 	def initTimer(self):
 		self.timer=QTimer()
 		self.timer.timeout.connect(self.showTime)
+		self.timer.timeout.connect(self.showTimeSim)
 		self.timer.start(40)
 
 	def showTime(self):
 		self.table.update_labels()
 
-	def initTimerSimulation(self):
-		self.timer=QTimer()
-		self.timer.timeout.connect(self.showTimeSim)
-		self.timer.start(40)
-
 	def showTimeSim(self):
-		group = [[1,1,self.i],[0,0,self.i],[1,0,self.i]]
-		self.i +=0.1
-		groups = [group]
-		self.simulation.sc.CalculateAllLines(groups,self.simulation_aktif)
+		tmp_groups =[]
+		for group in groups.groups:
+			tmp_group = []
+			for uav in group:
+				tmp_group.append([uavList[uav].info["X"] , uavList[uav].info["Y"] ,uavList[uav].info["Z"]])
+			tmp_groups.append(tmp_group)
+
+		self.simulation.sc.CalculateAllLines(tmp_groups,self.simulation_aktif)
 		self.simulation.sc.draw()
+
+
 
 def signal_handler(sig, frame):
 	print('You pressed Ctrl+C!')
