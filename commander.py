@@ -122,6 +122,7 @@ def run_sequence(scf,sequence):
 					print("Crazyflie {} has {}%% battery left, landing.".format(DroneID,charge_percent))
 					uav_list[DroneID].info["Aktif"] = "Hayır"
 					land(cf,DroneID)
+					break
 			
 			speed = uav_list[DroneID].calculate_speed()
 			logs[DroneID] += str(uav_list[DroneID].PoseX()) + "," + str(uav_list[DroneID].PoseY()) + "," + str(uav_list[DroneID].PoseZ()) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
