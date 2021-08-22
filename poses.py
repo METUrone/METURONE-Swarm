@@ -6,17 +6,11 @@ import os
 import sys
 
 
-
-
-
-
 def Store(data, args):
 	out = "/"+str(args)+"/"+str(data.pose.position.x)+"/"+str(data.pose.position.y)+"/"+str(data.pose.position.z)+"/"+ str(data.pose.orientation.x)+"/"+ str(data.pose.orientation.y)+"/"+ str(data.pose.orientation.z)+"/"+ str(data.pose.orientation.w)
 
 	print(out)
-	time.sleep(0.0001)	
-
-	#rospy.signal_shutdown("a")
+	time.sleep(0.0001)
 
 if __name__ == "__main__":
 

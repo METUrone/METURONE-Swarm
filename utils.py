@@ -9,22 +9,29 @@ class Pose:
 		self.y = y
 		self.z = z
 
-def length2(a,b):
+def Length(a,b):
 	return np.linalg.norm(np.array([a.x,a.y,a.z])-np.array([b.x,b.y,b.z]))
 
-def rotate(curr, angle): # Angle in radians
+def Rotate(curr, angle): # Angle in radians
 	return Pose(curr.x*math.cos(angle) - curr.y*math.sin(angle),
 				curr.x*math.sin(angle) + curr.y*math.cos(angle),
 				curr.z)
 
-# WTF IS THAT? TODO
-def floor_angle(angle):
+# From 540 -> 180, makes the degree between (0,360)
+""" this version may be used for performance, but the real performance impact should be done in rotation function
+def FloorAngle2(angle):
+    while angle > 360:
+        angle-=360
+    return angle
+"""
+def FloorAngle(angle):
+	return 
 
-    angle = angle*180/M_PI;
-    after_point = angle - (int(angle));
-    remainder = (int(angle))%360;
-    
-    return (remainder+after_point)*M_PI/180;
+	angle = angle*180/M_PI;
+	after_point = angle - (int(angle));
+	remainder = (int(angle))%360;
+	
+	return (remainder+after_point)*M_PI/180;
 
 # TODO CHANGE THIS!
 class Formations:
@@ -37,21 +44,5 @@ class Formations:
 formations = Formations()
 
 if __name__ == "__main__":
-	print(length2(Pose(1,2,3),Pose(1,2,5)))
-	print(rotate(Pose(1,2,3),M_PI).z)
-
-""" NOT TO BE USED FOR SOME TIME
-def NormalizeSpeed(speed, max_speed,count = 0):
-	if count > 10:
-		print("Normalize Speed cannot converge!", speed, max_speed)
-		exit()
-	x = speed[0]
-	y = speed[1]
-	z = speed[2]
-
-	scalar = math.sqrt(pow(x,2) + pow(y,2) + pow(z,2))
-	if scalar > max_speed:
-		return NormalizeSpeed([x/scalar*max_speed, y/scalar*max_speed, z/scalar*max_speed],max_speed,count+1) # will be changed
-	return speed
-"""
-
+	print(Length(Pose(1,2,3),Pose(1,2,5)))
+	print(Rotate(Pose(1,2,3),M_PI).z)

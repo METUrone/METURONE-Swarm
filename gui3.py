@@ -310,10 +310,10 @@ class Form_Connect(QFormLayout  ):
 				f.write(uri)
 				f.write("\n")
 
-		groups.init_group(len(self.Lines))
+		groups.InitGroup(len(self.Lines))
 
 
-		commander.init_swarm(self.URIS)
+		commander.InitSwarm(self.URIS)
 
 
 		self.CloseDialog()

@@ -2,8 +2,11 @@ import time as t
 import math as m
 from munkres import Munkres
 
-M_PI = m.pi
 from utils import *
+
+M_PI = m.pi
+
+
 class Formation:
 
 	# formation elements
@@ -23,10 +26,9 @@ class Formation:
 
 	# constructor
 	def __init__(self):
-
-		
 		self.height
 		self.initialPosition = Pose(0,0,0)
+
 	# some getters used throughout the code
 	def GetSides(self):
 		sides = []
@@ -72,7 +74,7 @@ class Formation:
 				curr.z += addition.z
 
 				if ((i+1) % (ihaSayisi/kenar) == 0):
-					addition = rotate(addition, 2*M_PI/kenar)
+					addition = Rotate(addition, 2*M_PI/kenar)
 		return sides
 
 	# Creates polygon formation with arbitary number of sides
@@ -144,8 +146,8 @@ class Formation:
 			curr.y = self.initialPosition.y + self.ihaArasiUzaklik*(m.sqrt((50+22*m.sqrt(5))/16));
 			curr.z = self.initialPosition.z;
 
-			curr = rotate(curr, self.angle);
-			addition = rotate(addition, self.angle);
+			curr = Rotate(curr, self.angle);
+			addition = Rotate(addition, self.angle);
 		
 		for i in range(ihaSayisi):
 			curr_append = Pose(curr.x, curr.y, curr.z)
@@ -156,7 +158,7 @@ class Formation:
 			curr.z += addition.z;
 
 			if ((i+1)%(ihaSayisi/kenar) == 0):
-				addition = rotate(addition, 2*M_PI/kenar);
+				addition = Rotate(addition, 2*M_PI/kenar);
 		return sides;
 
 	# Creates star formation with 10 UAVs
@@ -196,7 +198,7 @@ class Formation:
 			curr.z += addition.z;
 
 			if (i == self.ihaSayisi/2-1):
-				addition = rotate(addition, 2*M_PI/3);
+				addition = Rotate(addition, 2*M_PI/3);
 
 		self.isFormed = True;
 
@@ -256,11 +258,12 @@ class Formation:
 
 	# Increments positively for CCW, negative for CW
 	# Dönüş hızı increment ve rate değerleriyle ayarlanabilir.
+	# Will be removed for rotation to commander
 	def turnFormationAroundPoint(self, center, increment, rate, angle=0):
-		print("Current angle: ", floor_angle(self.angle)*180/M_PI);
-		print("Destination angle: [", floor_angle(angle-increment)*180/M_PI, ",", floor_angle(angle+increment)*180/M_PI, "]");
+		print("Current angle: ", FloorAngle(self.angle)*180/M_PI);
+		print("Destination angle: [", FloorAngle(angle-increment)*180/M_PI, ",", FloorAngle(angle+increment)*180/M_PI, "]");
 
-		if (angle and (floor_angle(angle+increment) >= floor_angle(self.angle) and floor_angle(self.angle) >= floor_angle(angle-increment))):
+		if (angle and (FloorAngle(angle+increment) >= FloorAngle(self.angle) and FloorAngle(self.angle) >= FloorAngle(angle-increment))):
 			self.angle = angle
 			self.initialAngle = angle
 			return
@@ -272,7 +275,7 @@ class Formation:
 			axis.y = self.sides[i].y - center.y
 			axis.z = self.sides[i].z - center.z
 		
-			axis = rotate(axis, increment)
+			axis = Rotate(axis, increment)
 
 			self.sides[i].x = axis.x + center.x;
 			self.sides[i].y = axis.y + center.y;
@@ -282,7 +285,7 @@ class Formation:
 		t.sleep(rate)
 
 	def assignDrones(self, currentPoses):
-		initial_cost = [[length2(dest, drone) for drone in currentPoses] for dest in self.sides]
+		initial_cost = [[Length(dest, drone) for drone in currentPoses] for dest in self.sides]
 		hungarian = Munkres()
 		
 		# Returns a list of tuples that is of the form

@@ -1,4 +1,3 @@
-
 import datetime
 import time
 import logging
@@ -12,11 +11,8 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
-
 from uav import *
-from missions import *
 from groups import *
-
 
 import math
 import traceback
@@ -31,14 +27,10 @@ logs = [""]*MAX_UAV_NUMBER
 def Pos_thread(sequence):
 	append = sequence[0]
 	process = sequence[1]
-	print(append)
 	error_count = 0
 	while 1:
 		x = datetime.datetime.now()
 		for line in iter(process.stdout.readline, ""):
-
-
-
 			lst = line.split("/")[1:]
 			uav_list[int(lst[0])-1].UpdatePose(	float(lst[1]),
 												float(lst[2]),
@@ -52,7 +44,7 @@ def Pos_thread(sequence):
 	print("ERROR: UAV Pose cannot be read, closing thread.")
 
 class Commander:
-	def init_swarm(self,uris):
+	def InitSwarm(self,uris):
 		self.seq_args = {}
 		
 		self.pose_args = {}
@@ -116,11 +108,21 @@ def run_sequence(scf,sequence):
 		uav_list[DroneID].info["Aktif"] = "Evet"
 
 		uav_list[DroneID].SetDest(uav_list[DroneID].PoseX , uav_list[DroneID].oseY,1.0)
-		print(uav_list[DroneID].dest)
+		#print(uav_list[DroneID].dest)
+		charging_problem = 0
 		while uav_list[DroneID].info["Aktif"] == "Evet":
 			info = logger._queue.get()[1]
 			#uav_list[DroneID].UpdatePose(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
 			uav_list[DroneID].info["Batarya"] = info["pm.vbat"]
+
+			charge_percent = (info["pm.vbat"] - 3.0) / (4.23 - 3.0) # https://forum.bitcraze.io/viewtopic.php?t=732
+			if charge_percent < 15:
+				charging_problem+=1
+				if charging_problem > 1e6:
+					print("Crazyflie {} has {}%% battery left, landing.".format(DroneID,charge_percent))
+					uav_list[DroneID].info["Aktif"] = "Hayır"
+					land(cf,DroneID)
+			
 			speed = uav_list[DroneID].calculate_speed()
 			logs[DroneID] += str(uav_list[DroneID].PoseX) + "," + str(uav_list[DroneID].PoseY) + "," + str(uav_list[DroneID].PoseZ) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
 			#print(DroneID,[ "pos = " ,uav_list[DroneID].PoseX ,uav_list[DroneID].info["Y"],uav_list[DroneID].info["Z"]] ,speed)

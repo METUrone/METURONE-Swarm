@@ -15,7 +15,7 @@ class Uav():
 		self.mode = "Hover"
 		self.hover_circle = 0.4
 
-	def init_Swarm(self,swarms): # Diğer Droneların Konumu için gerekli, azicik daha aciklama? TODO
+	def InitSwarm(self,swarms): # Diğer Droneların Konumu için gerekli, azicik daha aciklama? TODO
 		self.swarms = swarms
 
 	def UpdatePose(self,x,y,z):
@@ -103,11 +103,11 @@ class Uav():
 
 	def length_to_uav(self,uav):
 		return np.linalg.norm(self.GetPose-uav.GetPose())
-		
+
 for i in range(MAX_UAV_NUMBER):
     uav_list.append(copy.deepcopy(Uav(i)))
 for uav in uav_list:
-    uav.init_Swarm(uav_list)
+    uav.InitSwarm(uav_list)
 
 
 
