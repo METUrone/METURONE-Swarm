@@ -11,10 +11,17 @@ from munkres import Munkres
 from formation import *
 from utils import *
 import os
-from threading import lock
+from threading import Lock
 
-console_lock = lock()
+console_lock = Lock()
 console_output = ""
+
+def ConsoleOutput(text):
+	global console_lock
+	global console_output
+	console_lock.acquire()
+	console_output += text + "\n"
+	console_lock.release()
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -72,7 +79,7 @@ class Map(QWidget):
         qp.setPen(penB)
         for uav in uav_list:
             if uav.info["Aktif"] == "Evet":
-                qp.drawEllipse(400+(uav.PoseX*100)-5,400+(uav.PoseY*100)-5,10,10)
+                qp.drawEllipse(400+(uav.PoseX()*100)-5,400+(uav.PoseY()*100)-5,10,10)
 
 
         qp.setPen(penP)
@@ -131,7 +138,7 @@ class MissionLogs(QWidget):
 		layout = QVBoxLayout()
 		layout.addWidget(self.textEdit)
 		self.setLayout(layout)
-		self.text = "METURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\n"
+		self.text = ""
 		self.textEdit.setPlainText(self.text)
 
 		self.timer = QTimer()
@@ -144,8 +151,13 @@ class MissionLogs(QWidget):
 		self.textEdit.append(text)
 	
 	def CheckUpdate(self):
-		with lock:
+		global console_lock
+		global console_output
+		console_lock.acquire()
+		if console_output != "":
 			self.UpdateConsole(console_output + "\n")
+			console_output = ""
+		console_lock.release()
 
 class Table(QTableWidget):
 	def __init__(self):
@@ -888,8 +900,6 @@ class Window(QWidget):
 
 	def showTime(self):
 		self.table.update_labels()
-		with lock:
-			console_output+="a"
 
 def signal_handler(sig, frame):
 	print('You pressed Ctrl+C!')

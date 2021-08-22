@@ -24,7 +24,7 @@ class Uav():
 		self.info["Z"] = z
 
 	def GetPose(self):
-		return np.array([PoseX,PoseY,PoseZ])
+		return np.array([self.PoseX(),self.PoseY(),self.PoseZ()])
 
 	def PoseX(self):
 		return self.info["X"]
@@ -50,7 +50,7 @@ class Uav():
 		    return number
 
 	def distance_to_dest(self , dest ):
-		return math.sqrt(pow(dest[0]-self.PoseX,2) + pow(dest[1]-self.PoseY,2) + pow(dest[2]-self.PoseZ,2))
+		return math.sqrt(pow(dest[0]-self.PoseX(),2) + pow(dest[1]-self.PoseY(),2) + pow(dest[2]-self.PoseZ(),2))
 
 	def SetMode(self):
 		if self.distance_to_dest(self.dest) < self.hover_circle / 2:
