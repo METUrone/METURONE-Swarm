@@ -744,7 +744,7 @@ class buttons(QGridLayout):
 		super().__init__()
 
 		
-		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] , ["Yeni Formasyon",0,2] ,  ["Formasyon ",1,0] , ["Hareket ",1,1] , ["Trajectory",1,2] , ["Sürü Ayırma",2,0] , ["Sürü Birleştirme" , 2 ,1] , ["İHA Ayırma / Ekleme" , 2, 2]]
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] , ["Yeni Formasyon",0,2] ,  ["Formasyon ",1,0] , ["Hareket ",1,1] , ["Trajectory",1,2] , ["Sürü Ayırma",2,0] , ["Sürü Birleştirme" , 2 ,1] , ["İHA Ayırma / Ekleme" , 2, 2], ["Uçuş Planlama", 3, 0], ["Planlanan Uçuşa başla", 3, 1]]
 
 		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
@@ -761,7 +761,7 @@ class buttons(QGridLayout):
 			self.addWidget(button,index[1],index[2])
 
 
-		self.setVerticalSpacing(100)
+		self.setVerticalSpacing(20)
 
 		self.rowStretch(10)
 
@@ -858,7 +858,7 @@ class Window(QWidget):
 		btnLayout.addLayout(btns)
 		btnbox = QGroupBox()
 		btnbox.setLayout(btnLayout)
-		btnbox.setMinimumHeight(300)
+		btnbox.setMinimumHeight(200)
 
 
 		#video Player

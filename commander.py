@@ -71,8 +71,8 @@ class Commander:
 	
 def land(cf,DroneID ,height = 0.1,time1 = 0.5):
 	landTime = time.time() + time1
-	uav_list[DroneID].SetDest(uav_list[DroneID].PoseX,uav_list[DroneID].PoseY , height)
-	while uav_list[DroneID].PoseZ > 0.2 :
+	uav_list[DroneID].SetDest(uav_list[DroneID].PoseX(),uav_list[DroneID].PoseY() , height)
+	while uav_list[DroneID].PoseZ() > 0.2 :
 		speed = uav_list[DroneID].calculate_speed()
 		cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
@@ -107,7 +107,7 @@ def run_sequence(scf,sequence):
 	
 		uav_list[DroneID].info["Aktif"] = "Evet"
 
-		uav_list[DroneID].SetDest(uav_list[DroneID].PoseX , uav_list[DroneID].oseY,1.0)
+		uav_list[DroneID].SetDest(uav_list[DroneID].PoseX() , uav_list[DroneID].PoseY(),1.0)
 		#print(uav_list[DroneID].dest)
 		charging_problem = 0
 		while uav_list[DroneID].info["Aktif"] == "Evet":
@@ -124,8 +124,8 @@ def run_sequence(scf,sequence):
 					land(cf,DroneID)
 			
 			speed = uav_list[DroneID].calculate_speed()
-			logs[DroneID] += str(uav_list[DroneID].PoseX) + "," + str(uav_list[DroneID].PoseY) + "," + str(uav_list[DroneID].PoseZ) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
-			#print(DroneID,[ "pos = " ,uav_list[DroneID].PoseX ,uav_list[DroneID].info["Y"],uav_list[DroneID].info["Z"]] ,speed)
+			logs[DroneID] += str(uav_list[DroneID].PoseX()) + "," + str(uav_list[DroneID].PoseY()) + "," + str(uav_list[DroneID].PoseZ()) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
+			#print(DroneID,[ "pos = " ,uav_list[DroneID].PoseX() ,uav_list[DroneID].info["Y"],uav_list[DroneID].info["Z"]] ,speed)
 			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 		
