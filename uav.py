@@ -67,7 +67,7 @@ class Uav():
 		self.mode = "Go"
 
 	def CollisionSpeed(self,collisionconstant , uav):
-		return 1/pow(self.GetPose()-uav.GetPose(),3)*collision_constant
+		return 1/pow(self.GetPose()-uav.GetPose(),3)*collisionconstant
 
 	def HoverCollision(self,collisionConstant):
 		vector = np.array([0,0,0])

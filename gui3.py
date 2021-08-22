@@ -2,7 +2,7 @@ import sys
 import signal
 from typing import List
 from PyQt5.QtWidgets import *
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import QRect, Qt, center,QTimer,QDateTime
 from PyQt5.sip import simplewrapper
 
@@ -11,6 +11,10 @@ from munkres import Munkres
 from formation import *
 from utils import *
 import os
+from threading import lock
+
+console_lock = lock()
+console_output = ""
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -75,7 +79,7 @@ class Map(QWidget):
         for i in self.points:
             qp.drawEllipse(i[0],i[1], 10, 10)
 
-class MissionLogs(QTableWidget):
+class CurrentMission(QTableWidget):
 
 
 	def __init__(self):
@@ -99,8 +103,6 @@ class MissionLogs(QTableWidget):
 		self.horizontalHeader().setSectionResizeMode(
             QHeaderView.Stretch)
 
-
-
 		
 	
 	def init_labels(self):
@@ -115,7 +117,35 @@ class MissionLogs(QTableWidget):
 			tableitem.setTextAlignment(Qt.AlignCenter)
 
 			self.setItem(0,i,tableitem)
-					
+
+class MissionLogs(QWidget):
+
+
+	def __init__(self):
+		super().__init__()
+
+		self.setStyleSheet("background-color : lightblue")
+		self.textEdit = QTextEdit()
+		self.textEdit.setReadOnly(True)
+
+		layout = QVBoxLayout()
+		layout.addWidget(self.textEdit)
+		self.setLayout(layout)
+		self.text = "METURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\nMETURONE\n"
+		self.textEdit.setPlainText(self.text)
+
+		self.timer = QTimer()
+		self.timer.setInterval(1000)
+		self.timer.timeout.connect(self.CheckUpdate)
+		self.timer.start()
+
+	def UpdateConsole(self,text):
+		self.text+=text
+		self.textEdit.append(text)
+	
+	def CheckUpdate(self):
+		with lock:
+			self.UpdateConsole(console_output + "\n")
 
 class Table(QTableWidget):
 	def __init__(self):
@@ -788,14 +818,6 @@ class buttons(QGridLayout):
 		dialog.exec_()
 
 
-
-
-
-
-
-
-
-
 class Window(QWidget):
 	def __init__(self):
 		super().__init__()
@@ -818,9 +840,6 @@ class Window(QWidget):
 		tableLayout.addWidget(self.table)
 		tablebox.setLayout(tableLayout)
 
-
-
-
 		#buttons
 		btns = buttons()
 		btnLayout = QVBoxLayout()
@@ -840,16 +859,15 @@ class Window(QWidget):
 		#Mission Log + Groups
 		logLayout = QHBoxLayout()
 
-		missionLog = MissionLogs()
-		grouptable = QTableWidget()
+		missionLog = CurrentMission()
+		grouptable = MissionLogs()
 		logLayout.addWidget(missionLog)
 		logLayout.addWidget(grouptable)
-		logbox = QGroupBox()
+		logbox = QWidget()
 		logbox.setLayout(logLayout)
 		logbox.setMinimumHeight(240)
 		
-		
-
+		# Console
 
 
 		#set-up
@@ -870,6 +888,8 @@ class Window(QWidget):
 
 	def showTime(self):
 		self.table.update_labels()
+		with lock:
+			console_output+="a"
 
 def signal_handler(sig, frame):
 	print('You pressed Ctrl+C!')
