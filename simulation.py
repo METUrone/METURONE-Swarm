@@ -19,7 +19,7 @@ class MplCanvas(FigureCanvasQTAgg):
 
     def __init__(self,size , floor , dpi=100):
 
-        self.colors = ["red" , "green" , "blue" ,"yellow"]
+        self.colors = ["red" , "green" , "blue" ,"yellow","brown","black","purple"]
         fig = Figure(figsize=(size,size), dpi=dpi)
         self.axes = fig.add_subplot(111,projection = '3d')
         super(MplCanvas, self).__init__(fig)
@@ -39,21 +39,20 @@ class MplCanvas(FigureCanvasQTAgg):
         
 
 
-    def CalculateAllLines(self,groups , aktif):
+    def CalculateAllLines(self,groups_s , aktif):
 
 
         
         self.ClearGraph() 
-        if aktif == False or len(groups) == 0:
+        if aktif == False or len(groups_s) == 0:
             return
            
         i = 0
-        for group in groups:
-            
+        for group in groups_s:
             points = np.array(self.CalculateLine(group))
             vertices = []
-            for i in range(len(points)):
-                vertices.append([points[i],points[(i+1)%len(points)],points[i]])
+            for j in range(len(points)):
+                vertices.append([points[j],points[(j+1)%len(points)],points[j]])
             
 
             self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2])
@@ -102,8 +101,30 @@ class Simulation(QWidget):
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)
-        
-        self.setLayout(hbox)
+
+
+        buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
+        buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
+        buttonHover = "QPushButton::hover{background-color : yellow}"
+
+        self.simulation_aktif = True
+        self.simulation_button = QPushButton("Simülasyonu Başlat/Durdur")
+        self.simulation_button.clicked.connect(self.SimMode)
+        self.simulation_button.setStyleSheet(buttonIdle + buttonPressed + buttonHover)
+
+
+        self.simulation_layout = QVBoxLayout()
+        self.simulation_layout.addWidget(self.simulation_button)
+        self.simulation_layout.addWidget(self.sc)
+
+
+
+    def SimMode(self):
+        if self.simulation_aktif:
+            self.simulation_aktif = False
+        else :
+            self.simulation_aktif = True
+
 
 
 

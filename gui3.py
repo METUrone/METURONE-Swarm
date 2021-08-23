@@ -78,21 +78,27 @@ class Map(QWidget):
         for i in self.points:
             qp.drawEllipse(i[0],i[1], 10, 10)
 
-class MissionLogs(QTableWidget):
+class GroupInfos(QTableWidget):
 
 
 	def __init__(self):
 		super().__init__()
 
-		self.setAccessibleDescription("asdsad")
-		self.pastLogs = 0
+
+		self.row_count = len(groups.groups) + 1
+
+		self.circle_infos = ["Hayır"] * 10 # Hack, ilerde değiştir
+
+		self.labels = ["Daire" , "Grup No" , "Dronelar" , "Formasyon" , "Formasyon Merkezi"]
 
 		self.setStyleSheet("background-color : lightblue")
-		self.setRowCount(self.pastLogs+10)
+		self.setRowCount(self.row_count)
 		self.setEditTriggers(QAbstractItemView.NoEditTriggers )
-		self.setColumnCount(2)
+		self.setColumnCount(len(self.labels))
+		
 		self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
+		self.setFont(QtGui.QFont('Arial', 13))
 
 		self.init_labels()
 
@@ -103,13 +109,37 @@ class MissionLogs(QTableWidget):
             QHeaderView.Stretch)
 
 
+	def StartCircle(self , group):
+		print(group)
+		pass # TO-DO
+
+	def StopCircle(self,group):
+		print(group)
+		pass #TO-DO
+
+	def Circle(self,x,y):
+		
+		if x==0 or y != 0:
+			return
+		elif groups.formation_info[x-1][0] == "Yok":
+			self.circle_infos[x-1] == "Hayır"
+			return
+		else :
+
+			if self.circle_infos[x-1] == "Hayır" :
+				self.circle_infos[x-1] = "Evet"
+				self.StartCircle(x-1)
+			else :
+				self.circle_infos[x-1] = "Hayır"
+				self.StopCircle(x-1)
+
+ 
 
 		
-	
 	def init_labels(self):
+		self.cellClicked.connect(self.Circle)
 
-		self.labels = ["Görev Adı" , "Görev Özeti"]
-
+		self.circle_buttons = []
 		for i in range(len(self.labels)):
 
 			tableitem = QTableWidgetItem(self.labels[i])
@@ -118,6 +148,70 @@ class MissionLogs(QTableWidget):
 			tableitem.setTextAlignment(Qt.AlignCenter)
 
 			self.setItem(0,i,tableitem)
+
+	def AddRadioButton(self):
+
+		self.row_count = len(groups.groups) + 1
+
+		self.setRowCount(self.row_count)
+
+		
+
+	def RemoveRow(self):
+
+		
+
+
+		self.removeRow(self.row_count - 1 )
+
+		self.row_count =  len(groups.groups) + 1 
+		
+	def UpdateLabels(self):
+
+
+		
+
+		if(self.row_count < len(groups.groups) + 1 ):
+			self.AddRadioButton()
+
+		if(self.row_count > len(groups.groups) +1 ) :
+			self.RemoveRow()
+
+		i = 1
+
+		
+
+		for group in groups.groups:
+
+			table_circle = QTableWidgetItem(self.circle_infos[i-1])
+			table_circle.setTextAlignment(Qt.AlignCenter)
+			if self.circle_infos[i-1] == "Evet":
+				table_circle.setBackground(QtGui.QColor(0, 255, 0,125))
+			else :
+				table_circle.setBackground(QtGui.QColor(255, 0, 0,125))
+			self.setItem(i,0,table_circle)
+			
+			table_group_no = QTableWidgetItem(str(i-1))
+			table_group_no.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,1,table_group_no)
+
+			table_drone_no = QTableWidgetItem(str(group)[1:-1])
+			table_drone_no.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,2,table_drone_no)
+
+			table_formation = QTableWidgetItem(str(groups.formation_info[i-1][0]))
+			table_formation.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,3,table_formation)
+		
+
+			table_center = QTableWidgetItem(str(groups.formation_info[i-1][1]))
+			table_center.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,4,table_center)
+			
+
+			i+=1
+			
+
 					
 
 class Table(QTableWidget):
@@ -374,8 +468,8 @@ class Form_SetFormation(QFormLayout):
 		center_x = float(self.positionform.xPos.text())
 		center_y = float(self.positionform.yPos.text())
 		center_z = float(self.positionform.zPos.text())
-		print(center_x,center_y,center_z)
 		formation_side = formations.formations[self.cb.currentText()]
+		groups.SetFormationİnfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z))
 
 		#################################
 		formation = Formation()
@@ -383,7 +477,7 @@ class Form_SetFormation(QFormLayout):
 		poses = formation.GetSides()
 	
 		#################################
-
+		
 		initial_cost = []
 		uav_ids = []
 		for uav in uavList:
@@ -404,8 +498,6 @@ class Form_SetFormation(QFormLayout):
 			pose = poses[index[1]]
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
 			print(uav_id , pose)
-
-
 		self.CloseDialog()
 		
 	def CloseDialog(self):
@@ -483,6 +575,8 @@ class Form_Split(QFormLayout):
 
 		group = int(self.cb.currentText())
 
+		
+
 		new_group = []
 
 		for i in range(len(groups.groups[group])):
@@ -491,6 +585,8 @@ class Form_Split(QFormLayout):
 
 		
 		groups.SplitGroup(group,new_group)
+
+
 
 
 		self.CloseDialog()
@@ -686,6 +782,8 @@ class MapLayout(QHBoxLayout):
 					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
 				initial_cost.append(dist)
 
+		groups.SetFormationİnfos(int(self.group.text()),"Yok","Yok")
+
 
 		hungarian = Munkres()
 
@@ -846,41 +944,45 @@ class Window(QWidget):
 		btnbox.setMinimumHeight(300)
 
 
-		#video Player
-		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
-		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
-		buttonHover = "QPushButton::hover{background-color : yellow}"
+		#simulation + console
+
+		
+
+		self.tabs = QTabWidget()
+		self.simulation_tab = QWidget()
+		self.console_tab = QWidget()
+
+		self.tabs.addTab(self.simulation_tab,"Simulation")
+		self.tabs.addTab(self.console_tab,"Console")
+
+		tabs_layout = QVBoxLayout()
+		tabs_layout.addWidget(self.tabs)
+
+		self.leftBox =  QGroupBox()
+		self.leftBox.setLayout(tabs_layout)
+		self.leftBox.setMinimumWidth(960)
+
+		
 
 		self.simulation = Simulation()
-		self.simulation_aktif = True
-		simulation_button = QPushButton("Simülasyonu Başlat/Durdur")
-		simulation_button.clicked.connect(self.SimMode)
-		simulation_button.setStyleSheet(buttonIdle + buttonPressed + buttonHover)
+		
+		self.simulation_tab.setLayout(self.simulation.simulation_layout)
 
-		videoPlayerLayout = QVBoxLayout()
-		videoPlayerLayout.addWidget(simulation_button)
-		videoPlayerLayout.addWidget(self.simulation)
-		videoPlayerbox = QGroupBox()
-		videoPlayerbox.setLayout(videoPlayerLayout)
-		videoPlayerbox.setMinimumWidth(960)
 
 
 		#Mission Log + Groups
 		logLayout = QHBoxLayout()
 
-		missionLog = MissionLogs()
-		grouptable = QTableWidget()
-		logLayout.addWidget(missionLog)
-		logLayout.addWidget(grouptable)
+
+		self.group_table = GroupInfos()
+		logLayout.addWidget(self.group_table)
 		logbox = QGroupBox()
 		logbox.setLayout(logLayout)
 		logbox.setMinimumHeight(240)
 		
-		
-	
 
 		#set-up
-		hbox.addWidget(videoPlayerbox)
+		hbox.addWidget(self.leftBox)
 		vbox.addWidget(btnbox)
 		vbox.addWidget(logbox)
 		vbox.addWidget(tablebox)
@@ -890,12 +992,6 @@ class Window(QWidget):
 
 		self.initTimer()
 		
-	
-	def SimMode(self):
-		if self.simulation_aktif:
-			self.simulation_aktif = False
-		else :
-			self.simulation_aktif = True
 
 	def initTimer(self):
 		self.timer=QTimer()
@@ -905,6 +1001,7 @@ class Window(QWidget):
 
 	def showTime(self):
 		self.table.update_labels()
+		self.group_table.UpdateLabels()
 
 	def showTimeSim(self):
 		tmp_groups =[]
@@ -914,7 +1011,9 @@ class Window(QWidget):
 				tmp_group.append([uavList[uav].info["X"] , uavList[uav].info["Y"] ,uavList[uav].info["Z"]])
 			tmp_groups.append(tmp_group)
 
-		self.simulation.sc.CalculateAllLines(tmp_groups,self.simulation_aktif)
+
+		self.simulation.sc.CalculateAllLines(tmp_groups,self.simulation.simulation_aktif)
+
 		self.simulation.sc.draw()
 
 
