@@ -19,51 +19,48 @@ class MplCanvas(FigureCanvasQTAgg):
 
     def __init__(self,size , floor , dpi=100):
 
-        self.colors = ["red" , "green" , "blue" ,"yellow"]
+        self.colors = ["red" , "green" , "blue" ,"yellow","brown","black","purple"]
         fig = Figure(figsize=(size,size), dpi=dpi)
         self.axes = fig.add_subplot(111,projection = '3d')
         super(MplCanvas, self).__init__(fig)
-        self.axes.set_zlim(0,5)
-        self.axes.set_xlim(-floor,floor)
-        self.axes.set_ylim(-floor,floor)
         
-        self.vertices = []
-
+        self.floor = floor
 
 
 
     def ClearGraph(self):
-        for i in self.vertices:
-            try:
-                i.remove()
-            except :
-                pass
+        self.axes.clear()
 
+
+        self.axes.set_zlim(0,self.floor)
+        self.axes.set_xlim(-self.floor,self.floor)
+        self.axes.set_ylim(-self.floor,self.floor)
     
         
 
 
-    def CalculateAllLines(self,groups , aktif):
+    def CalculateAllLines(self,groups_s , aktif):
 
 
         
         self.ClearGraph() 
-        if aktif == False or len(groups) == 0:
+        if aktif == False or len(groups_s) == 0:
             return
            
         i = 0
-        for group in groups:
-            
+        for group in groups_s:
             points = np.array(self.CalculateLine(group))
             vertices = []
-            for i in range(len(points)):
-                vertices.append([points[i],points[(i+1)%len(points)],points[i]])
+            for j in range(len(points)):
+                vertices.append([points[j],points[(j+1)%len(points)],points[j]])
             
-
-            self.vertices.append(self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2]))
+    
+            self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2])
 
             
-            self.vertices.append(self.axes.add_collection3d(Poly3DCollection(vertices, facecolors='red', linewidths=3, edgecolors=self.colors[i], alpha=0.5)))
+            self.axes.add_collection3d(Poly3DCollection(vertices,  linewidths=3, edgecolors=self.colors[i], alpha=0.5))
+
+            i+=1
 
 
 
@@ -100,14 +97,32 @@ class Simulation(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Create the maptlotlib FigureCanvas object,
-        # which defines a single set of axes as self.axes.
-        self.sc = MplCanvas( 5, 8, dpi=100)
+        self.sc = MplCanvas( 5, 3, dpi=100)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)
-        #self.setCentralWidget(sc)
-        self.setLayout(hbox)
+
+        buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
+        buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
+        buttonHover = "QPushButton::hover{background-color : yellow}"
+
+        self.simulation_aktif = True
+        self.simulation_button = QPushButton("Simülasyonu Başlat/Durdur")
+        self.simulation_button.clicked.connect(self.SimMode)
+        self.simulation_button.setStyleSheet(buttonIdle + buttonPressed + buttonHover)
+
+
+        self.simulation_layout = QVBoxLayout()
+        self.simulation_layout.addWidget(self.simulation_button)
+        self.simulation_layout.addWidget(self.sc)
+
+
+
+    def SimMode(self):
+        if self.simulation_aktif:
+            self.simulation_aktif = False
+        else :
+            self.simulation_aktif = True
 
 
 

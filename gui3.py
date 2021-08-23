@@ -11,7 +11,7 @@ from formations import *
 from munkres import Munkres
 from formation import *
 from formation_utils import *
-
+import os
 App = QApplication(sys.argv)
 from simulation import *
 
@@ -78,21 +78,27 @@ class Map(QWidget):
         for i in self.points:
             qp.drawEllipse(i[0],i[1], 10, 10)
 
-class MissionLogs(QTableWidget):
+class GroupInfos(QTableWidget):
 
 
 	def __init__(self):
 		super().__init__()
 
-		self.setAccessibleDescription("asdsad")
-		self.pastLogs = 0
+
+		self.row_count = len(groups.groups) + 1
+
+		self.circle_infos = ["Hayır"] * 10 # Hack, ilerde değiştir
+
+		self.labels = ["Daire" , "Grup No" , "Dronelar" , "Formasyon" , "Formasyon Merkezi"]
 
 		self.setStyleSheet("background-color : lightblue")
-		self.setRowCount(self.pastLogs+10)
+		self.setRowCount(self.row_count)
 		self.setEditTriggers(QAbstractItemView.NoEditTriggers )
-		self.setColumnCount(2)
+		self.setColumnCount(len(self.labels))
+		
 		self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
+		self.setFont(QtGui.QFont('Arial', 13))
 
 		self.init_labels()
 
@@ -103,13 +109,37 @@ class MissionLogs(QTableWidget):
             QHeaderView.Stretch)
 
 
+	def StartCircle(self , group):
+		print(group)
+		pass # TO-DO
+
+	def StopCircle(self,group):
+		print(group)
+		pass #TO-DO
+
+	def Circle(self,x,y):
+		
+		if x==0 or y != 0:
+			return
+		elif groups.formation_info[x-1][0] == "Yok":
+			self.circle_infos[x-1] == "Hayır"
+			return
+		else :
+
+			if self.circle_infos[x-1] == "Hayır" :
+				self.circle_infos[x-1] = "Evet"
+				self.StartCircle(x-1)
+			else :
+				self.circle_infos[x-1] = "Hayır"
+				self.StopCircle(x-1)
+
+ 
 
 		
-	
 	def init_labels(self):
+		self.cellClicked.connect(self.Circle)
 
-		self.labels = ["Görev Adı" , "Görev Özeti"]
-
+		self.circle_buttons = []
 		for i in range(len(self.labels)):
 
 			tableitem = QTableWidgetItem(self.labels[i])
@@ -118,6 +148,70 @@ class MissionLogs(QTableWidget):
 			tableitem.setTextAlignment(Qt.AlignCenter)
 
 			self.setItem(0,i,tableitem)
+
+	def AddRadioButton(self):
+
+		self.row_count = len(groups.groups) + 1
+
+		self.setRowCount(self.row_count)
+
+		
+
+	def RemoveRow(self):
+
+		
+
+
+		self.removeRow(self.row_count - 1 )
+
+		self.row_count =  len(groups.groups) + 1 
+		
+	def UpdateLabels(self):
+
+
+		
+
+		if(self.row_count < len(groups.groups) + 1 ):
+			self.AddRadioButton()
+
+		if(self.row_count > len(groups.groups) +1 ) :
+			self.RemoveRow()
+
+		i = 1
+
+		
+
+		for group in groups.groups:
+
+			table_circle = QTableWidgetItem(self.circle_infos[i-1])
+			table_circle.setTextAlignment(Qt.AlignCenter)
+			if self.circle_infos[i-1] == "Evet":
+				table_circle.setBackground(QtGui.QColor(0, 255, 0,125))
+			else :
+				table_circle.setBackground(QtGui.QColor(255, 0, 0,125))
+			self.setItem(i,0,table_circle)
+			
+			table_group_no = QTableWidgetItem(str(i-1))
+			table_group_no.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,1,table_group_no)
+
+			table_drone_no = QTableWidgetItem(str(group)[1:-1])
+			table_drone_no.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,2,table_drone_no)
+
+			table_formation = QTableWidgetItem(str(groups.formation_info[i-1][0]))
+			table_formation.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,3,table_formation)
+		
+
+			table_center = QTableWidgetItem(str(groups.formation_info[i-1][1]))
+			table_center.setTextAlignment(Qt.AlignCenter)
+			self.setItem(i,4,table_center)
+			
+
+			i+=1
+			
+
 					
 
 class Table(QTableWidget):
@@ -235,7 +329,7 @@ class Form_Connect(QFormLayout  ):
 		self.Lines = []
 
 		tmp = QLineEdit()
-		tmp.setText("radio://0/80/2M/E7E7E7E701")
+		tmp.setText("radio://0/XX/2M/E7E7E7E7XX")
 		self.Lines.append(tmp)
 		self.addRow("URI1 : ", tmp)
 
@@ -247,11 +341,17 @@ class Form_Connect(QFormLayout  ):
 		rmButton.setMaximumWidth(100)
 		rmButton.clicked.connect(self.RemoveSwarm)
 
+		loadButton = QPushButton("Önceki URI yükle")
+		loadButton.setMaximumWidth(150)
+		loadButton.clicked.connect(self.LoadURI)
+
 		hbox = QHBoxLayout()
 		hbox.addWidget(addButton)
 		hbox.addWidget(rmButton)
+		hbox.addWidget(loadButton)
 
 		self.addRow(hbox)
+		self.setVerticalSpacing(10)
 		
 
 		#submit ve close buttonu
@@ -261,8 +361,11 @@ class Form_Connect(QFormLayout  ):
 		self.addWidget(buttonbox)
 
 	def AddSwarm(self):
+		self.AddSwarmURI("radio://0/XX/2M/E7E7E7E7XX") # default URI
+
+	def AddSwarmURI(self,uri):
 		tmp = QLineEdit()
-		tmp.setText("radio://0/70/2M/E7E7E7E706")
+		tmp.setText(uri)
 		self.Lines.append(tmp)
 		self.insertRow(self.swarm_count,"URI"+str(self.swarm_count+1),tmp)
 		self.swarm_count +=1
@@ -273,17 +376,41 @@ class Form_Connect(QFormLayout  ):
 		self.removeRow(self.swarm_count-1)
 		self.swarm_count -=1
 
+	def RemoveSwarmAll(self):
+		while self.Lines:
+			del self.Lines[-1]
+			self.removeRow(self.swarm_count-1)
+			self.swarm_count -=1
 
+	def LoadURI(self):
+		if os.path.exists("config/URIs.txt") and os.stat("config/URIs.txt").st_size:
+			#cleaning
+			self.RemoveSwarmAll()
+			with open("config/URIs.txt","r") as f:
+				uri = "ss" # no meaning other than saitss
+				for uri in f.readlines():
+
+					self.AddSwarmURI(uri)
+		else:
+			msg = QMessageBox()
+			msg.setWindowTitle("BRUH MOMENT")
+			msg.setText("Konfigürasyon dosyası bozuk")
+			msg.exec_()
 
 	def submit(self):
 
 		for lines in self.Lines:
 			self.URIS.append(lines.text())
 
+		with open("config/URIs.txt","w") as f:
+			for uri in self.URIS:
+				f.write(uri)
+
 		groups.init_group(len(self.Lines))
 
 
 		commander.init_swarm(self.URIS)
+
 
 		self.CloseDialog()
 		
@@ -291,8 +418,6 @@ class Form_Connect(QFormLayout  ):
 		
 	def CloseDialog(self):
 		self.dialog.close()
-
-
 
 
 
@@ -343,8 +468,8 @@ class Form_SetFormation(QFormLayout):
 		center_x = float(self.positionform.xPos.text())
 		center_y = float(self.positionform.yPos.text())
 		center_z = float(self.positionform.zPos.text())
-		print(center_x,center_y,center_z)
 		formation_side = formations.formations[self.cb.currentText()]
+		groups.SetFormationİnfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z))
 
 		#################################
 		formation = Formation()
@@ -352,7 +477,7 @@ class Form_SetFormation(QFormLayout):
 		poses = formation.GetSides()
 	
 		#################################
-
+		
 		initial_cost = []
 		uav_ids = []
 		for uav in uavList:
@@ -373,8 +498,6 @@ class Form_SetFormation(QFormLayout):
 			pose = poses[index[1]]
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
 			print(uav_id , pose)
-
-
 		self.CloseDialog()
 		
 	def CloseDialog(self):
@@ -452,6 +575,8 @@ class Form_Split(QFormLayout):
 
 		group = int(self.cb.currentText())
 
+		
+
 		new_group = []
 
 		for i in range(len(groups.groups[group])):
@@ -460,6 +585,8 @@ class Form_Split(QFormLayout):
 
 		
 		groups.SplitGroup(group,new_group)
+
+
 
 
 		self.CloseDialog()
@@ -574,6 +701,13 @@ class MapLayout(QHBoxLayout):
 		self.height.setAlignment(Qt.AlignCenter)
 		self.form.addRow("Yükseklik",self.height )
 
+
+		self.group = QLineEdit()
+		self.group.setText("0")
+		self.group.setMaximumWidth(100)
+		self.group.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Grup",self.group )
+
 		self.uzaklık = QLineEdit()
 		self.uzaklık.setText("0.5")
 		self.uzaklık.setMaximumWidth(100)
@@ -626,6 +760,9 @@ class MapLayout(QHBoxLayout):
 			self.labels.append(label)
 	def submit(self):
 
+		if(len(self.calculatedposes)) != len(groups.groups[int(self.group.text())]):
+			self.PopUp()
+			return
 
 		i = 0
 		for pose in self.calculatedposes :
@@ -635,13 +772,17 @@ class MapLayout(QHBoxLayout):
 		self.CloseDialog()
 
 		initial_cost = []
+		uav_ids = []
 	
 		for uav in uavList:
-			if uav.info["Aktif"] == "Evet":
+			if uav.info["Aktif"] == "Evet" and uav.info["Grup"] == int(self.group.text()):
 				dist = []
+				uav_ids.append(uav.info["Drone No"])
 				for pose in self.calculatedposes:
 					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
 				initial_cost.append(dist)
+
+		groups.SetFormationİnfos(int(self.group.text()),"Yok","Yok")
 
 
 		hungarian = Munkres()
@@ -649,10 +790,14 @@ class MapLayout(QHBoxLayout):
 		indexes = hungarian.compute(initial_cost)
 
 		for index in indexes : 
-			uavList[index[0]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			uavList[uav_ids[index[0]]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
 
 
-
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( str(len(groups.groups[int(self.group.text())])) + " Pozisyon Gerekli " + str(len(self.calculatedposes)) + " Pozisyon Verildi" )
+		msg.exec_()
 		
 		
 	def CloseDialog(self):
@@ -799,42 +944,47 @@ class Window(QWidget):
 		btnbox.setMinimumHeight(300)
 
 
-		#video Player
-		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
-		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
-		buttonHover = "QPushButton::hover{background-color : yellow}"
+		#simulation + console
+
+		
+
+		self.tabs = QTabWidget()
+		self.simulation_tab = QWidget()
+		self.console_tab = QWidget()
+
+		self.tabs.addTab(self.simulation_tab,"Simulation")
+		self.tabs.addTab(self.console_tab,"Console")
+
+		tabs_layout = QVBoxLayout()
+		tabs_layout.addWidget(self.tabs)
+
+		self.leftBox =  QGroupBox()
+		self.leftBox.setLayout(tabs_layout)
+		self.leftBox.setMinimumWidth(960)
+
+		
 
 		self.simulation = Simulation()
-		self.simulation_aktif = True
-		simulation_button = QPushButton("Simülasyonu Başlat/Durdur")
-		simulation_button.clicked.connect(self.SimMode)
-		simulation_button.setStyleSheet(buttonIdle + buttonPressed + buttonHover)
+		
+		self.simulation_tab.setLayout(self.simulation.simulation_layout)
 
-		videoPlayerLayout = QVBoxLayout()
-		videoPlayerLayout.addWidget(simulation_button)
-		videoPlayerLayout.addWidget(self.simulation)
-		videoPlayerbox = QGroupBox()
-		videoPlayerbox.setLayout(videoPlayerLayout)
-		videoPlayerbox.setMinimumWidth(960)
 
 
 		#Mission Log + Groups
 		logLayout = QHBoxLayout()
 
-		missionLog = MissionLogs()
-		grouptable = QTableWidget()
-		logLayout.addWidget(missionLog)
-		logLayout.addWidget(grouptable)
+
+		self.group_table = GroupInfos()
+		logLayout.addWidget(self.group_table)
 		logbox = QGroupBox()
 		logbox.setLayout(logLayout)
 		logbox.setMinimumHeight(240)
 		
-		
-		self.i = 0
-
+	
+	
 
 		#set-up
-		hbox.addWidget(videoPlayerbox)
+		hbox.addWidget(self.leftBox)
 		vbox.addWidget(btnbox)
 		vbox.addWidget(logbox)
 		vbox.addWidget(tablebox)
@@ -843,33 +993,32 @@ class Window(QWidget):
 		self.showMaximized()
 
 		self.initTimer()
-		self.initTimerSimulation()
+		
 	
-	def SimMode(self):
-		if self.simulation_aktif:
-			self.simulation_aktif = False
-		else :
-			self.simulation_aktif = True
+	
 
 	def initTimer(self):
 		self.timer=QTimer()
 		self.timer.timeout.connect(self.showTime)
+		self.timer.timeout.connect(self.showTimeSim)
 		self.timer.start(40)
 
 	def showTime(self):
 		self.table.update_labels()
-
-	def initTimerSimulation(self):
-		self.timer=QTimer()
-		self.timer.timeout.connect(self.showTimeSim)
-		self.timer.start(40)
+		self.group_table.UpdateLabels()
 
 	def showTimeSim(self):
-		group = [[1,1,self.i],[0,0,self.i],[1,0,self.i]]
-		self.i +=0.1
-		groups = [group]
-		self.simulation.sc.CalculateAllLines(groups,self.simulation_aktif)
+		tmp_groups =[]
+		for group in groups.groups:
+			tmp_group = []
+			for uav in group:
+				tmp_group.append([uavList[uav].info["X"] , uavList[uav].info["Y"] ,uavList[uav].info["Z"]])
+			tmp_groups.append(tmp_group)
+
+		self.simulation.sc.CalculateAllLines(tmp_groups,self.simulation.simulation_aktif)
 		self.simulation.sc.draw()
+
+
 
 def signal_handler(sig, frame):
 	print('You pressed Ctrl+C!')
