@@ -16,7 +16,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
 from Uav import *
 from missions import *
 from Groups import *
-
+from Utils import *
 
 import math
 import traceback
@@ -90,7 +90,22 @@ def land(cf,DroneID ,height = 0.1,time1 = 0.5):
 def wait_for_param_download(scf):
 	while not scf.cf.param.is_updated:
 		time.sleep(1.0)
-	print('Parameters downloaded for', scf.cf.link_uri)
+	ConsoleOutput('Parameters downloaded for '+str(scf.cf.link_uri))
+
+
+charging_problem = 0
+def ReadBattery(charge):
+	global charging_problem
+	charge_percent = (charge - 3.0) / (4.23 - 3.0) # https://forum.bitcraze.io/viewtopic.php?t=732
+	if charge_percent < 15:
+		charging_problem+=1
+		if charging_problem > 1e6:
+			print("Crazyflie {} has {}%% battery left, landing.".format(DroneID,charge_percent))
+			uav_list[DroneID].info["Aktif"] = "Hayır"
+			land(cf,DroneID)
+			return False
+	return True
+			
 
 def run_sequence(scf,sequence):
 	
@@ -123,10 +138,14 @@ def run_sequence(scf,sequence):
 			info = logger._queue.get()[1]
 			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
 			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
+			if ReadBattery(info["pm.vbat"]) == False:
+				break
+
+			
 			speed = uavList[DroneID].calculate_speed()
 			logs[DroneID] += str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
 			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
-			cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+			#cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
 
 			if(uavList[DroneID].info["Batarya"] < 0):
 				uavList[DroneID].info["Aktif"] = "Hayır"

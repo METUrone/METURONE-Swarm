@@ -14,6 +14,7 @@ from formation_utils import *
 import os
 App = QApplication(sys.argv)
 from simulation import *
+from Utils import *
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -77,6 +78,37 @@ class Map(QWidget):
         qp.setPen(penP)
         for i in self.points:
             qp.drawEllipse(i[0],i[1], 10, 10)
+
+class MissionLogs(QWidget):
+
+
+	def __init__(self):
+		super().__init__()
+
+		self.setStyleSheet("background-color : lightblue")
+		self.textEdit = QTextEdit()
+		self.textEdit.setReadOnly(True)
+
+		self.layout = QVBoxLayout()
+		self.layout.addWidget(self.textEdit)
+	
+		self.text = ""
+		self.textEdit.setPlainText(self.text)
+
+		self.timer = QTimer()
+		self.timer.setInterval(1000)
+		self.timer.timeout.connect(self.CheckUp)
+		self.timer.start()
+
+	def UpdateConsole(self,text):
+		self.text+=text
+		self.textEdit.append(text)
+	
+	def CheckUp(self):
+		console = CheckUpdate()
+		if console != "":
+			print(console)
+			self.UpdateConsole(console + "\n")
 
 class GroupInfos(QTableWidget):
 
@@ -965,9 +997,10 @@ class Window(QWidget):
 		
 
 		self.simulation = Simulation()
+		self.mission_log = MissionLogs()
 		
 		self.simulation_tab.setLayout(self.simulation.simulation_layout)
-
+		self.console_tab.setLayout(self.mission_log.layout)
 
 
 		#Mission Log + Groups
