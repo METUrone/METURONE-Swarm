@@ -980,8 +980,6 @@ class Window(QWidget):
 		logbox.setLayout(logLayout)
 		logbox.setMinimumHeight(240)
 		
-	
-	
 
 		#set-up
 		hbox.addWidget(self.leftBox)
@@ -994,8 +992,6 @@ class Window(QWidget):
 
 		self.initTimer()
 		
-	
-	
 
 	def initTimer(self):
 		self.timer=QTimer()
@@ -1015,7 +1011,9 @@ class Window(QWidget):
 				tmp_group.append([uavList[uav].info["X"] , uavList[uav].info["Y"] ,uavList[uav].info["Z"]])
 			tmp_groups.append(tmp_group)
 
+
 		self.simulation.sc.CalculateAllLines(tmp_groups,self.simulation.simulation_aktif)
+
 		self.simulation.sc.draw()
 
 

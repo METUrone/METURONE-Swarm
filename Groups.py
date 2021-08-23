@@ -6,7 +6,6 @@ class Groups:
 
         self.groups = []
         self.formation_info = {}
-
     def init_group(self,uav_count):
         self.uav_count = uav_count
         self.group = []

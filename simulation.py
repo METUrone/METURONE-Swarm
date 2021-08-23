@@ -54,7 +54,7 @@ class MplCanvas(FigureCanvasQTAgg):
             for j in range(len(points)):
                 vertices.append([points[j],points[(j+1)%len(points)],points[j]])
             
-    
+
             self.axes.scatter3D(points[:, 0], points[:, 1], points[:, 2])
 
             
@@ -102,6 +102,7 @@ class Simulation(QWidget):
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)
 
+
         buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
         buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
         buttonHover = "QPushButton::hover{background-color : yellow}"
@@ -123,6 +124,9 @@ class Simulation(QWidget):
             self.simulation_aktif = False
         else :
             self.simulation_aktif = True
+
+
+
 
 
 
