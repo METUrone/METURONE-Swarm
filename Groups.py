@@ -17,9 +17,9 @@ class Groups:
 
         self.groups.append(self.group)
 
-    def SetFormationİnfos(self,group,formation,center):
+    def SetFormationİnfos(self,group,formation,center,x = 0.0,y = 0.0,z = 0.0):
 
-        self.formation_info[group] = [formation,center]
+        self.formation_info[group] = [formation,center,x,y,z]
 
     def DelFormationInfo(self,group):
         del self.formation_info[grup] 

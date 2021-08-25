@@ -39,8 +39,8 @@ def Pos_thread(sequence):
 
 
 			lst = line.split("/")[1:]
-			uavList[int(lst[0]) - 1 ].info["X"] = float(lst[1])
-			uavList[int(lst[0]) - 1].info["Y"] = float(lst[2])
+			uavList[int(lst[0]) - 1 ].info["X"] = -1*float(lst[2])
+			uavList[int(lst[0]) - 1].info["Y"] = float(lst[1])
 			uavList[int(lst[0]) - 1].info["Z"] = float(lst[3])
 			#print("pose thread time is",datetime.datetime.now() - x, line)
 			#print(line)
@@ -101,7 +101,7 @@ def ReadBattery(charge):
 		charging_problem+=1
 		if charging_problem > 1e6:
 			print("Crazyflie {} has {}%% battery left, landing.".format(DroneID,charge_percent))
-			uav_list[DroneID].info["Aktif"] = "Hayır"
+			uav_list[DroneID].info["Bağlı"] = "Hayır"
 			land(cf,DroneID)
 			return False
 	return True
@@ -111,10 +111,13 @@ def run_sequence(scf,sequence):
 	
 	try:	
 		cf = scf.cf
+		DroneID = sequence[0]
 		
 		while cf.is_connected() == False:
 			time.sleep(0.01)
-
+		uavList[DroneID].info["Bağlı"] = "Evet"
+		uavList[DroneID].SetState(State.CONNECTED)
+		
 		### LOG INFOS (Konum ve Batarya çek)
 		lg_stab = LogConfig(name='log', period_in_ms=10)
 		lg_stab.add_variable('stateEstimate.x', 'float')
@@ -127,38 +130,33 @@ def run_sequence(scf,sequence):
 		info = logger._queue.get()[1]
 		### LOG INFOS
 
-		DroneID = sequence[0]
 
-	
-		uavList[DroneID].info["Aktif"] = "Evet"
 
-		uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
-		print(uavList[DroneID].dest)
-		while uavList[DroneID].info["Aktif"] == "Evet":
+
+		#uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
+		while uavList[DroneID].GetState() != State.NOT_CONNECTED:
+			
+			
 			info = logger._queue.get()[1]
 			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
 			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
-			if ReadBattery(info["pm.vbat"]) == False:
-				break
-
+			"""if ReadBattery(info["pm.vbat"]) == False:
+				uavList[DroneID].SetState(State.LOW_BATTERY)
+				ConsoleOutput("UAV {} has low percent battery.".format(DroneID))
+				return"""
 			
 			speed = uavList[DroneID].calculate_speed()
-			logs[DroneID] += str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
-			#print(DroneID,[ "pos = " ,uavList[DroneID].info["X"] ,uavList[DroneID].info["Y"],uavList[DroneID].info["Z"]] ,speed)
-			#cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
-
-			if(uavList[DroneID].info["Batarya"] < 0):
-				uavList[DroneID].info["Aktif"] = "Hayır"
-				groups.groups[uavList[DroneID].info["Grup"]].remove(DroneID)
-		
-
-		land(cf , DroneID)
-
-			
-
-		
-
-		#self.Land(cf,DroneID)
+			print(speed)
+			dest = uavList[DroneID].GetDest()
+			if speed:
+				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],speed[0],speed[1],speed[2],dest[0],dest[1],dest[2])
+			else:
+				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],-math.pi,-math.pi,-math.pi,dest[0],dest[1],dest[2])
+			#logs[DroneID] += uavList[DroneID].GetState().name + "," + str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
+			if speed != None:
+				cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+				pass
+		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
 	except Exception as e:
 		print(e)
 		traceback.print_exc()		
