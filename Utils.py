@@ -1,4 +1,5 @@
 import math
+from threading import Lock
 class Vec3:
 	def __init__(self,x,y,z):
 		self.x = x
@@ -19,3 +20,23 @@ def NormalizeSpeed(speed, max_speed,count = 0):
 	return speed
 
 
+
+console_lock = Lock()
+console_output = ""
+
+def ConsoleOutput(text):
+	global console_lock
+	global console_output
+	console_lock.acquire()
+	console_output += text + "\n"
+	print(console_output)
+	console_lock.release()
+
+def CheckUpdate():
+	global console_lock
+	global console_output
+	console_lock.acquire()
+	x = console_output
+	console_output = ""
+	console_lock.release()
+	return x

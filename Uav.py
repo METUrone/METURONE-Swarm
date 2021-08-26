@@ -1,6 +1,6 @@
 #Swarmdaki her bir uav Uav clasının bir objesi
 from Utils import *
-
+from enum import Enum
 
 import datetime
 import copy
@@ -10,15 +10,111 @@ MAX_SPEED = 0.15
 Max_Uav_Number = 10 # change
 #Max uav number : GUI için gerekli (table için)
 
+class State(Enum):
+	NOT_CONNECTED = 0
+	CONNECTED = 1
+	TAKEOFF = 2
+	CIRCLE = 4
+	TRAJECTORY = 8
+	GO = 16
+	HOVER = 32
+	LOW_BATTERY = 64
+
+	
+
 class Uav():
 	def __init__(self,DroneId , StartPos = [0,0,1]):
-		self.info = {"Drone No" : DroneId , "Aktif" : "Hayır" , "X" : 0 , "Y" : 0 , "Z" : 0 ,"Batarya" : 0,"Grup" : 0} # GUI için gerekli
-		self.dest = StartPos # Dronun ilk konumu  -- Utilsdeki Vec3 ile veriniz
+		self.states = {State.NOT_CONNECTED : "Bağlı Değil" , State.CONNECTED : "Hazır" , State.TAKEOFF : "TakeOff" , State.CIRCLE : "Daire" , State.TRAJECTORY:"Trajectory" , State.GO : "Go" , State.HOVER  : "Hover" , State.LOW_BATTERY : "Low"}
 
+		self.state = State.NOT_CONNECTED
+		self.info = {"Drone No" : DroneId , "Bağlı" : "Hayır", "Durum": self.states[self.state] , "X" : 0 , "Y" : 0 , "Z" : 0 ,"Batarya" : 0,"Grup" : 0} # GUI için gerekli
+		self.dest = StartPos # Dronun ilk konumu  -- Utilsdeki Vec3 ile veriniz
+		
 		self.mode = "Hover"
 
-		self.hover_circle = 0.4
+		self.hover_circle = 0.2
+		COMMON_SPEED_CONSTANT = 0.5
+		self.speed_constant_takeoff = COMMON_SPEED_CONSTANT
+		self.speed_constant_hover = COMMON_SPEED_CONSTANT
+		self.speed_constant_land = COMMON_SPEED_CONSTANT
+		self.speed_constant_circle = COMMON_SPEED_CONSTANT
 
+		self.circle_center = [0,0,0]
+		self.circle_radious = 0
+		self.circle_radian = 0
+
+		self.trajectory_centers =[]
+		self.trajectory_loop = False
+		self.trajectory_speed = 0
+
+	def CalculateTrajectory(self,centers,speed,loop):
+		
+		if len(centers) == 0:
+			return 
+		else :
+			self.trajectory_centers = centers
+			self.speed = speed
+			self.loop = loop
+			self.SetState(State.TRAJECTORY)
+
+
+	def CalculateNewCenter(self,old_center,new_center):
+		
+		x_change = new_center[0] - old_center[0] 
+		y_change = new_center[1] - old_center[1] 
+		z_change = new_center[2] - old_center[2] 
+
+		pose = self.GetDest()
+
+		self.SetDest(pose[0] + x_change , pose[1] + y_change , pose[2] + z_change)
+		
+		self.SetState(State.GO)
+
+		pass
+
+	def DistanceToCenter(self,center):
+		return math.sqrt( pow(self.dest[0]-center[0],2) + pow(self.dest[1]-center[1],2) )
+
+	def StartCircle(self,center):
+		"""pose = self.GetPose()
+		self.circle_radian = math.atan(  (pose[1] - center[1] ) / ( pose[0] - center[0] ) )
+		self.circle_center = center
+		self.circle_radious = max(self.DistanceToCenter(center),1)"""
+		print("Start Circle")
+		self.SetState(State.CIRCLE)
+
+	def StopCircle(self):
+		self.dest = self.GetPose()
+		print("Stop Circle")
+		self.SetState(State.HOVER)
+		
+	def GetDroneNo(self):
+		return self.info["Drone No"]
+
+	def GetDest(self):
+		return self.dest
+
+	
+	def GetPose(self):
+		return [self.info["X"] , self.info["Y"] , self.info["Z"]]
+
+	def SetState(self, new_state):
+		# check needed
+
+		if new_state == State.TAKEOFF:
+			pose = self.GetPose()
+			self.dest = [pose[0],pose[1],1.0]
+
+		if new_state == State.CONNECTED:
+			pose = self.GetPose()
+			self.dest = [pose[0],pose[1],0.0]
+		self.state = new_state
+		self.info["Durum"] = self.states[self.state]
+		# adjustments needed
+	
+	def GetState(self):
+		return self.state
+		
 	def init_Swarm(self,swarms): # Diğer Droneların Konumu için gerekli
 		self.swarms = swarms
 
@@ -50,7 +146,7 @@ class Uav():
 			return 
 
 		for uav in uavList:
-			if uav == self or uav.info["Aktif"] == "Hayır":
+			if uav == self or uav.info["Bağlı"] == "Hayır":
 				continue
 			elif self.length_to_uav(uav) < self.hover_circle:
 				self.mode = "Hover"
@@ -59,9 +155,93 @@ class Uav():
 		self.mode = "Go"
 
 	def CollisionSpeed(self,collisionconstant , uav):
-		speed_x = 1/pow(self.info["X"] - uav.info["X"],3) * collisionconstant;
-		speed_y = 1/pow(self.info["Y"] - uav.info["Y"],3) * collisionconstant;
-		speed_z = 1/pow(self.info["Z"] - uav.info["Z"],3) * collisionconstant;
+		speed_x = 1/pow(self.info["X"] - uav.info["X"],3) * collisionconstant
+		speed_y = 1/pow(self.info["Y"] - uav.info["Y"],3) * collisionconstant
+		speed_z = 1/pow(self.info["Z"] - uav.info["Z"],3) * collisionconstant
+		return [speed_x,speed_y,speed_z]
+
+	def CalculateLandSpeed(self):
+		pose = self.GetPose()
+		if pose[2] < 0.2:
+			return None
+		else:
+			speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_land
+			speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_land
+			speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_land
+			
+			speed_x = self.clip(-0.4,0.4,speed_x)
+			speed_y = self.clip(-0.4,0.4,speed_y)
+			speed_z = self.clip(-0.4,0.4,speed_z)
+
+			return [speed_x,speed_y,speed_z]
+
+
+	def CalculateCircleSpeed(self):
+
+		self.SetState(State.HOVER)
+	
+		"""x_offset = self.circle_radious * math.cos(self.circle_radian)
+		y_offset = self.circle_radious * math.sin(self.circle_radian)
+		self.circle_radian += 0.003
+		self.SetDest(self.circle_center[0] + x_offset , self.circle_center[1] + y_offset , self.circle_center[2])
+		speed_x = ((self.dest[0] - self.info["X"]) )
+		speed_y = ((self.dest[1] - self.info["Y"]) )
+		speed_z = ((self.dest[2] - self.info["Z"]) )
+		
+		speed_x = self.clip(-0.2,0.2,speed_x)
+		speed_y = self.clip(-0.2,0.2,speed_y)
+		speed_z = self.clip(-0.2,0.2,speed_z)"""
+
+		return [speed_x,speed_y,speed_z]
+
+	def CalculateHoverSpeed(self):
+		if self.distance_to_dest(self.dest) > self.hover_circle:
+		
+			self.SetState(State.GO)
+
+		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_hover
+		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_hover
+		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_hover
+		
+		speed_x = self.clip(-0.2,0.2,speed_x)
+		speed_y = self.clip(-0.2,0.2,speed_y)
+		speed_z = self.clip(-0.2,0.2,speed_z)
+
+		return [speed_x,speed_y,speed_z]
+
+	def CalculateGoSpeed(self):
+		if self.distance_to_dest(self.dest) < self.hover_circle:
+		
+			self.SetState(State.HOVER)
+
+		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
+		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
+		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		
+		speed_x = self.clip(-0.4,0.4,speed_x)
+		speed_y = self.clip(-0.4,0.4,speed_y)
+		speed_z = self.clip(-0.4,0.4,speed_z)
+
+		return [speed_x,speed_y,speed_z]
+
+	def CalculateTrajectorySpeed(self):
+		print("Trajectory")
+		self.SetState(State.HOVER)
+
+	def CalculateTakeOffSpeed(self ):
+
+		if self.distance_to_dest(self.dest) < self.hover_circle:
+		
+			self.SetState(State.HOVER)
+
+		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
+		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
+		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		
+		speed_x = self.clip(-0.4,0.4,speed_x)
+		speed_y = self.clip(-0.4,0.4,speed_y)
+		speed_z = self.clip(-0.4,0.4,speed_z)
+
 		return [speed_x,speed_y,speed_z]
 
 	def HoverCollision(self,collisionConstant):
@@ -70,7 +250,7 @@ class Uav():
 		speed_z = 0
 
 		for uav in uavList:
-			if uav.info["Aktif"] == "Hayır" or uav == self:
+			if uav.info["Bağlı"] == "Hayır" or uav == self:
 				continue
 
 			distance = self.length_to_uav(uav)
@@ -83,41 +263,29 @@ class Uav():
 
 		return [speed_x,speed_y,speed_z]
 	def calculate_speed(self,speed_constant = 0.8,collision_constant = 0.3):
+		if self.GetState() == State.CONNECTED or self.GetState() == State.LOW_BATTERY:
+			return self.CalculateLandSpeed()
+		
+		elif self.GetState() == State.TAKEOFF:
+			return self.CalculateTakeOffSpeed()
 
 
-		self.SetMode()
-		#print(self.info["Drone No"] , self.mode)
+		elif self.GetState() == State.CIRCLE:
+			return self.CalculateCircleSpeed()
+		
+		elif self.GetState() == State.HOVER:
+			return self.CalculateHoverSpeed()
+		
+		elif self.GetState() == State.GO:
+			return self.CalculateGoSpeed()
+		
+		elif self.GetState() == State.TRAJECTORY:
+			return self.CalculateTrajectorySpeed()
 
-		speed_x = ((self.dest[0] - self.info["X"]) ) * speed_constant 
-		speed_y = ((self.dest[1] - self.info["Y"]) ) * speed_constant 
-		speed_z = ((self.dest[2] - self.info["Z"]) ) * speed_constant 
-
-		#print(self.mode)
-
-		if self.mode == "Hover":
-			collision_speed = self.HoverCollision(collision_constant)
-			speed_x += collision_speed[0]
-			speed_y += collision_speed[1]
-			speed_z += collision_speed[2]
-
-			speed_x = self.clip(-0.2,0.2,speed_x)
-			speed_y = self.clip(-0.2,0.2,speed_y)
-			speed_z = self.clip(-0.1,0.1,speed_z)
-
-		speed_x = self.clip(-0.4,0.4,speed_x)
-		speed_y = self.clip(-0.4,0.4,speed_y)
-		speed_z = self.clip(-0.4,0.4,speed_z)
-
-		return [speed_x,speed_y,speed_z]
+		else :
+			return [0,0,0]
 
 
-
-
-	def takeoff(self,height = 0.5):#Kalkış heighti
-		self.dest.z = height
-
-	def land(self,height = 0.05): # İniş Heighti
-		self.dest.z = height
 
 	def length_to_uav(self,uav):
 
