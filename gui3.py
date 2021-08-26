@@ -649,9 +649,9 @@ class Form_Hareket(QFormLayout):
 	
 
 		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
-			groups.SetFormationInfos(group , groups.formation_info[group][0] , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
 			old_center = groups.GetCenter(group)
 			new_center = [center_x,center_y,center_z]
+			groups.SetFormationInfos(group , groups.formation_info[group][0] , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
 			groups.SetCenter(group,new_center)
 			for uav in groups.groups[group]:
 				uavList[uav].CalculateNewCenter(old_center,new_center)

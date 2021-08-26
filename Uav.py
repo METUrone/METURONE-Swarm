@@ -32,12 +32,15 @@ class Uav():
 		
 		self.mode = "Hover"
 
-		self.hover_circle = 0.2
+		self.hover_circle = 0.3
 		COMMON_SPEED_CONSTANT = 0.5
-		self.speed_constant_takeoff = COMMON_SPEED_CONSTANT
-		self.speed_constant_hover = COMMON_SPEED_CONSTANT
-		self.speed_constant_land = COMMON_SPEED_CONSTANT
+		self.speed_clip_takeoff = COMMON_SPEED_CONSTANT
+		self.speed_constant_hover = 0.7
+		self.speed_clip_land = 0.2
 		self.speed_constant_circle = COMMON_SPEED_CONSTANT
+
+		self.speed_clip_takeoff = 0.4
+		self.speed_clip_go = 0.4
 
 		self.circle_center = [0,0,0]
 		self.circle_radious = 0
@@ -64,13 +67,17 @@ class Uav():
 		y_change = new_center[1] - old_center[1] 
 		z_change = new_center[2] - old_center[2] 
 
+		print("centers " ,old_center , new_center)
+
 		pose = self.GetDest()
 
+		print("old dest" ,self.GetDest())
+
 		self.SetDest(pose[0] + x_change , pose[1] + y_change , pose[2] + z_change)
+		print(self.GetDest())
 		
 		self.SetState(State.GO)
 
-		pass
 
 	def DistanceToCenter(self,center):
 		return math.sqrt( pow(self.dest[0]-center[0],2) + pow(self.dest[1]-center[1],2) )
@@ -162,16 +169,16 @@ class Uav():
 
 	def CalculateLandSpeed(self):
 		pose = self.GetPose()
-		if pose[2] < 0.2:
+		if pose[2] < 0.4:
 			return None
 		else:
-			speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_land
-			speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_land
-			speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_land
+			speed_x = ((self.dest[0] - self.info["X"]) ) 
+			speed_y = ((self.dest[1] - self.info["Y"]) ) 
+			speed_z = ((self.dest[2] - self.info["Z"]) ) 
 			
-			speed_x = self.clip(-0.4,0.4,speed_x)
-			speed_y = self.clip(-0.4,0.4,speed_y)
-			speed_z = self.clip(-0.4,0.4,speed_z)
+			speed_x = self.clip(-self.speed_clip_land,self.speed_clip_land,speed_x)
+			speed_y = self.clip(-self.speed_clip_land,self.speed_clip_land,speed_y)
+			speed_z = self.clip(-self.speed_clip_land,self.speed_clip_land,speed_z)
 
 			return [speed_x,speed_y,speed_z]
 
@@ -203,9 +210,6 @@ class Uav():
 		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_hover
 		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_hover
 		
-		speed_x = self.clip(-0.2,0.2,speed_x)
-		speed_y = self.clip(-0.2,0.2,speed_y)
-		speed_z = self.clip(-0.2,0.2,speed_z)
 
 		return [speed_x,speed_y,speed_z]
 
@@ -214,13 +218,13 @@ class Uav():
 		
 			self.SetState(State.HOVER)
 
-		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
-		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
-		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		speed_x = ((self.dest[0] - self.info["X"]) ) 
+		speed_y = ((self.dest[1] - self.info["Y"]) ) 
+		speed_z = ((self.dest[2] - self.info["Z"]) )
 		
-		speed_x = self.clip(-0.4,0.4,speed_x)
-		speed_y = self.clip(-0.4,0.4,speed_y)
-		speed_z = self.clip(-0.4,0.4,speed_z)
+		speed_x = self.clip(-self.speed_clip_go,self.speed_clip_go,speed_x)
+		speed_y = self.clip(-self.speed_clip_go,self.speed_clip_go,speed_y)
+		speed_z = self.clip(-self.speed_clip_go,self.speed_clip_go,speed_z)
 
 		return [speed_x,speed_y,speed_z]
 
@@ -234,15 +238,16 @@ class Uav():
 		
 			self.SetState(State.HOVER)
 
-		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
-		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
-		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		speed_x = ((self.dest[0] - self.info["X"]) ) 
+		speed_y = ((self.dest[1] - self.info["Y"]) ) 
+		speed_z = ((self.dest[2] - self.info["Z"]) )
 		
-		speed_x = self.clip(-0.4,0.4,speed_x)
-		speed_y = self.clip(-0.4,0.4,speed_y)
-		speed_z = self.clip(-0.4,0.4,speed_z)
+		speed_x = self.clip(-self.speed_clip_takeoff,self.speed_clip_takeoff,speed_x)
+		speed_y = self.clip(-self.speed_clip_takeoff,self.speed_clip_takeoff,speed_y)
+		speed_z = self.clip(-self.speed_clip_takeoff,self.speed_clip_takeoff,speed_z)
 
 		return [speed_x,speed_y,speed_z]
+
 
 	def HoverCollision(self,collisionConstant):
 		speed_x = 0

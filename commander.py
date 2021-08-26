@@ -146,7 +146,6 @@ def run_sequence(scf,sequence):
 				return"""
 			
 			speed = uavList[DroneID].calculate_speed()
-			print(speed)
 			dest = uavList[DroneID].GetDest()
 			if speed:
 				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],speed[0],speed[1],speed[2],dest[0],dest[1],dest[2])
