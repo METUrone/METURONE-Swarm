@@ -2,6 +2,8 @@
 from Utils import *
 from enum import Enum
 
+import numpy as np
+
 import datetime
 import copy
 
@@ -32,28 +34,73 @@ class Uav():
 		
 		self.mode = "Hover"
 
-		self.hover_circle = 0.2
+		self.hover_circle = 0.3
 		COMMON_SPEED_CONSTANT = 0.5
-		self.speed_constant_takeoff = COMMON_SPEED_CONSTANT
-		self.speed_constant_hover = COMMON_SPEED_CONSTANT
-		self.speed_constant_land = COMMON_SPEED_CONSTANT
+		self.speed_clip_takeoff = COMMON_SPEED_CONSTANT
+		self.speed_constant_hover = 0.7
+		self.speed_constant_trajectory = 0.7
+		self.speed_clip_land = 0.2
 		self.speed_constant_circle = COMMON_SPEED_CONSTANT
+
+		self.speed_clip_takeoff = 0.4
+		self.speed_clip_go = 0.4
 
 		self.circle_center = [0,0,0]
 		self.circle_radious = 0
 		self.circle_radian = 0
 
+		self.trajectory_centers =[]
+		self.trajectory_loop = False
+		self.trajectory_speed = 0
+		self.trajectory_length = 0
+
+		self.distance_to_center = 0
+
+	#eğer formasyon yoksa no trajectory
+	def CalculateTrajectory(self,centers,speed,loop):
+		
+		if len(centers) == 0:
+			return 
+		else :
+			self.trajectory_centers = centers
+			self.trajectory_length = len(centers)
+			self.trajectory_speed = speed
+			self.trajectory_loop = loop
+			self.SetState(State.TRAJECTORY)
+
+	def SetDistanceToCenter(self,center,curr_pose):
+		self.distance_to_center = np.array(curr_pose) - np.array(center)
+
+	def CalculateNewCenter(self,old_center,new_center):
+		
+		x_change = new_center[0] - old_center[0] 
+		y_change = new_center[1] - old_center[1] 
+		z_change = new_center[2] - old_center[2] 
+
+
+		pose = self.GetDest()
+
+		self.SetDest(pose[0] + x_change , pose[1] + y_change , pose[2] + z_change)
+
+		self.SetState(State.GO)
+
+
 	def DistanceToCenter(self,center):
 		return math.sqrt( pow(self.dest[0]-center[0],2) + pow(self.dest[1]-center[1],2) )
 
 	def StartCircle(self,center):
-		pose = self.GetPose()
+		"""pose = self.GetPose()
 		self.circle_radian = math.atan(  (pose[1] - center[1] ) / ( pose[0] - center[0] ) )
 		self.circle_center = center
-		self.circle_radious = max(self.DistanceToCenter(center),1)
-		print(self.circle_radian)
-
+		self.circle_radious = max(self.DistanceToCenter(center),1)"""
+		print("Start Circle")
 		self.SetState(State.CIRCLE)
+
+	def StopCircle(self):
+		self.dest = self.GetPose()
+		print("Stop Circle")
+		self.SetState(State.HOVER)
+		
 	def GetDroneNo(self):
 		return self.info["Drone No"]
 
@@ -74,6 +121,8 @@ class Uav():
 		if new_state == State.CONNECTED:
 			pose = self.GetPose()
 			self.dest = [pose[0],pose[1],0.0]
+
+
 		self.state = new_state
 		self.info["Durum"] = self.states[self.state]
 		# adjustments needed
@@ -94,20 +143,25 @@ class Uav():
 		self.dest[0]= float(x)
 		self.dest[1] = float(y)
 		self.dest[2] = float(z)
-
-	def clip(self,min,max,number):
-		if number < min:
-		    return min
-		elif number > max:
-		    return max
+	
+	def clip(self,border,number):
+		border = abs(border)
+		if number < -border:
+		    return -border
+		elif number > border:
+		    return border
 		else :
 		    return number
 
-	def distance_to_dest(self , dest ):
+
+
+	def distance_to_dest(self , dest = None ):
+		if dest is None:
+			dest = self.dest
 		return math.sqrt(pow(dest[0]-self.info["X"],2) + pow(dest[1]-self.info["Y"],2) + pow(dest[2]-self.info["Z"],2))
 
 	def SetMode(self):
-		if self.distance_to_dest(self.dest) < self.hover_circle / 2:
+		if self.distance_to_dest() < self.hover_circle / 2:
 			self.mode = "Hover"
 			return 
 
@@ -126,26 +180,29 @@ class Uav():
 		speed_z = 1/pow(self.info["Z"] - uav.info["Z"],3) * collisionconstant
 		return [speed_x,speed_y,speed_z]
 
-	def CalculateLandSpeed(self):
+	def CalculateLandSpeed(self, clip_speed = None):
+		if clip_speed is None:
+			clip_speed = self.speed_clip_land
 		pose = self.GetPose()
-		if pose[2] < 0.2:
+		if pose[2] < 0.4:
 			return None
 		else:
-			speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_land
-			speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_land
-			speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_land
+			speed_x = ((self.dest[0] - self.info["X"]) ) 
+			speed_y = ((self.dest[1] - self.info["Y"]) ) 
+			speed_z = ((self.dest[2] - self.info["Z"]) ) 
 			
-			speed_x = self.clip(-0.4,0.4,speed_x)
-			speed_y = self.clip(-0.4,0.4,speed_y)
-			speed_z = self.clip(-0.4,0.4,speed_z)
+			speed_x = self.clip(clip_speed,speed_x)
+			speed_y = self.clip(clip_speed,speed_y)
+			speed_z = self.clip(clip_speed,speed_z)
 
 			return [speed_x,speed_y,speed_z]
 
 
 	def CalculateCircleSpeed(self):
 
+		self.SetState(State.HOVER)
 	
-		x_offset = self.circle_radious * math.cos(self.circle_radian)
+		"""x_offset = self.circle_radious * math.cos(self.circle_radian)
 		y_offset = self.circle_radious * math.sin(self.circle_radian)
 		self.circle_radian += 0.003
 		self.SetDest(self.circle_center[0] + x_offset , self.circle_center[1] + y_offset , self.circle_center[2])
@@ -155,12 +212,13 @@ class Uav():
 		
 		speed_x = self.clip(-0.2,0.2,speed_x)
 		speed_y = self.clip(-0.2,0.2,speed_y)
-		speed_z = self.clip(-0.2,0.2,speed_z)
+		speed_z = self.clip(-0.2,0.2,speed_z)"""
 
 		return [speed_x,speed_y,speed_z]
 
+	# Be careful! No clip
 	def CalculateHoverSpeed(self):
-		if self.distance_to_dest(self.dest) > self.hover_circle:
+		if self.distance_to_dest() > self.hover_circle:
 		
 			self.SetState(State.GO)
 
@@ -168,45 +226,65 @@ class Uav():
 		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_hover
 		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_hover
 		
-		speed_x = self.clip(-0.2,0.2,speed_x)
-		speed_y = self.clip(-0.2,0.2,speed_y)
-		speed_z = self.clip(-0.2,0.2,speed_z)
 
 		return [speed_x,speed_y,speed_z]
 
-	def CalculateGoSpeed(self):
-		if self.distance_to_dest(self.dest) < self.hover_circle:
+	def CalculateGoSpeed(self, clip_speed = None):
+		if clip_speed is None:
+			clip_speed = self.speed_clip_go
+		if self.distance_to_dest() < self.hover_circle:
 		
 			self.SetState(State.HOVER)
 
-		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
-		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
-		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		speed_x = ((self.dest[0] - self.info["X"]) ) 
+		speed_y = ((self.dest[1] - self.info["Y"]) ) 
+		speed_z = ((self.dest[2] - self.info["Z"]) )
 		
-		speed_x = self.clip(-0.4,0.4,speed_x)
-		speed_y = self.clip(-0.4,0.4,speed_y)
-		speed_z = self.clip(-0.4,0.4,speed_z)
+		speed_x = self.clip(clip_speed,speed_x)
+		speed_y = self.clip(clip_speed,speed_y)
+		speed_z = self.clip(clip_speed,speed_z)
 
 		return [speed_x,speed_y,speed_z]
 
 	def CalculateTrajectorySpeed(self):
-		pass
 
-	def CalculateTakeOffSpeed(self ):
+
+		curr_pose = np.array(self.GetPose())
+		destinated_pose = np.array(self.trajectory_centers[0]) + self.distance_to_center
+
+		print(np.linalg.norm(curr_pose-destinated_pose))
+		print(self.trajectory_centers[0])
+		if np.linalg.norm(curr_pose-destinated_pose) > 0.2:
+			distance_between_centers = np.array(self.trajectory_centers[0]) - np.array(self.GetPose()) + self.distance_to_center
+			length = np.linalg.norm(distance_between_centers)
+			return [self.trajectory_speed * distance_between_centers[0] / length, self.trajectory_speed * distance_between_centers[1] / length, (self.dest[2] - self.info["Z"]) * self.speed_constant_trajectory]
+		else:
+			c = self.trajectory_centers.pop(0)
+			self.trajectory_centers.append(c)
+			return self.CalculateTrajectorySpeed()
+
+		
+
+
+
+	def CalculateTakeOffSpeed(self, clip_speed = None ):
+		if clip_speed is None:
+			clip_speed = self.speed_clip_takeoff
 
 		if self.distance_to_dest(self.dest) < self.hover_circle:
 		
 			self.SetState(State.HOVER)
 
-		speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_takeoff
-		speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_takeoff
-		speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_takeoff
+		speed_x = ((self.dest[0] - self.info["X"]) ) 
+		speed_y = ((self.dest[1] - self.info["Y"]) ) 
+		speed_z = ((self.dest[2] - self.info["Z"]) )
 		
-		speed_x = self.clip(-0.4,0.4,speed_x)
-		speed_y = self.clip(-0.4,0.4,speed_y)
-		speed_z = self.clip(-0.4,0.4,speed_z)
+		speed_x = self.clip(clip_speed,speed_x)
+		speed_y = self.clip(clip_speed,speed_y)
+		speed_z = self.clip(clip_speed,speed_z)
 
 		return [speed_x,speed_y,speed_z]
+
 
 	def HoverCollision(self,collisionConstant):
 		speed_x = 0
@@ -259,6 +337,7 @@ for i in range(Max_Uav_Number):
     uavList.append(copy.deepcopy(Uav(i)))
 for uav in uavList:
     uav.init_Swarm(uavList)
+
 
 
 

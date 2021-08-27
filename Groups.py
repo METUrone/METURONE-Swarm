@@ -12,12 +12,20 @@ class Groups:
         for i in range(self.uav_count):
             self.group.append(i)
 
-        self.SetFormationİnfos(0,"Yok" , "Yok")
+        self.SetFormationInfos(0,"Yok" , "Yok")
         
 
         self.groups.append(self.group)
 
-    def SetFormationİnfos(self,group,formation,center,x = 0.0,y = 0.0,z = 0.0):
+    def GetCenter(self , group):
+        return [self.formation_info[group][2],self.formation_info[group][3],self.formation_info[group][4]]
+
+    def SetCenter(self, group,center):
+        self.formation_info[group][2] = center[0]
+        self.formation_info[group][3] = center[1]
+        self.formation_info[group][4] = center[2]
+
+    def SetFormationInfos(self,group,formation,center,x = 0.0,y = 0.0,z = 0.0):
 
         self.formation_info[group] = [formation,center,x,y,z]
 
@@ -41,7 +49,7 @@ class Groups:
         
         
         self.groups.append(new_group)
-        self.SetFormationİnfos(len(self.groups)-1,"Yok","Yok")
+        self.SetFormationInfos(len(self.groups)-1,"Yok","Yok")
 
     def AppendGroups(self,second,first):
 
@@ -53,8 +61,8 @@ class Groups:
         for i in new_group:
             self.groups[first].append(i)
 
-        self.SetFormationİnfos(first,"Yok","Yok")
-        self.SetFormationİnfos(second,"Yok","Yok")
+        self.SetFormationInfos(first,"Yok","Yok")
+        self.SetFormationInfos(second,"Yok","Yok")
 
         self.groups[first].sort()
 
@@ -71,3 +79,4 @@ class Groups:
 
         
 groups = Groups()
+

@@ -222,8 +222,8 @@ class GroupInfos(QTableWidget):
 		pass # TO-DO
 
 	def StopCircle(self,group):
-		print(group)
-		pass #TO-DO
+		for tmp_group in groups.groups[group]:
+			uavList[tmp_group].StopCircle( )
 
 	def Circle(self,x,y):
 		
@@ -579,7 +579,7 @@ class Form_SetFormation(QFormLayout):
 		center_y = float(self.positionform.yPos.text())
 		center_z = float(self.positionform.zPos.text())
 		formation_side = formations.formations[self.cb.currentText()]
-		groups.SetFormationİnfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
+		groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
 
 		#################################
 		formation = Formation()
@@ -607,6 +607,7 @@ class Form_SetFormation(QFormLayout):
 			uav_id = uav_ids[index[0]]
 			pose = poses[index[1]]
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
+			uavList[uav_id].SetDistanceToCenter( [center_x,center_y,center_z] , uavList[uav_id].GetDest())
 			print(uav_id , pose)
 		self.CloseDialog()
 		
@@ -641,8 +642,24 @@ class Form_Hareket(QFormLayout):
 
 	def submit(self):
 
-		hareket = SetHareket(self.positionform.xPos.text(),self.positionform.yPos.text(),self.positionform.zPos.text(),self.group.text())
+		
+		center_x = float(self.positionform.xPos.text())
+		center_y = float(self.positionform.yPos.text())
+		center_z = float(self.positionform.zPos.text())
+		group = int(self.group.text())
+	
 
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
+			old_center = groups.GetCenter(group)
+			new_center = [center_x,center_y,center_z]
+			groups.SetFormationInfos(group , groups.formation_info[group][0] , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
+			groups.SetCenter(group,new_center)
+			for uav in groups.groups[group]:
+				uavList[uav].CalculateNewCenter(old_center,new_center)
+		else:
+			self.PopUp()
+			return
+			
 
 
 		self.CloseDialog()
@@ -650,6 +667,12 @@ class Form_Hareket(QFormLayout):
 		
 	def CloseDialog(self):
 		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
 
 
 		
@@ -888,7 +911,7 @@ class MapLayout(QHBoxLayout):
 					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
 				initial_cost.append(dist)
 
-		groups.SetFormationİnfos(int(self.group.text()),"Yok","Yok")
+		groups.SetFormationInfos(int(self.group.text()),"Yok","Yok")
 
 
 		hungarian = Munkres()
@@ -954,7 +977,7 @@ class TrajectoryMap(QHBoxLayout):
 		self.speed.setText("0.3")
 		self.speed.setMaximumWidth(100)
 		self.speed.setAlignment(Qt.AlignCenter)
-		self.form.addRow("Grup",self.speed )
+		self.form.addRow("Hız",self.speed )
 
 		self.loop = QRadioButton()
 		self.form.addRow("Döngü",self.loop)
@@ -1012,35 +1035,24 @@ class TrajectoryMap(QHBoxLayout):
 	def submit(self):
 
 
-		i = 0
-		for pose in self.calculatedposes :
-			uavList[i].SetDest(pose[0],pose[1],self.height.text())
-			i+=1
+		group = int(self.group.text())
+		height = float(self.height.text())
+		speed = float(self.speed.text())
+		loop = self.loop.isChecked()
 
-		self.CloseDialog()
+		centers = []
 
-		initial_cost = []
-		uav_ids = []
+		for pose in self.calculatedposes:
+			centers.append([pose[0],pose[1],height])
+
+
+
+		for uav in groups.groups[group]:
 	
-		for uav in uavList:
-			if uav.info["Bağlı"] == "Evet" and uav.info["Grup"] == int(self.group.text()):
-				dist = []
-				uav_ids.append(uav.info["Drone No"])
-				for pose in self.calculatedposes:
-					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
-				initial_cost.append(dist)
-
-		groups.SetFormationİnfos(int(self.group.text()),"Yok","Yok")
-
-
-		hungarian = Munkres()
-
-		indexes = hungarian.compute(initial_cost)
-
-		for index in indexes : 
-			uavList[uav_ids[index[0]]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			uavList[uav].CalculateTrajectory(centers,speed,loop)
 			
-
+			
+		self.CloseDialog()
 		
 		
 	def CloseDialog(self):
@@ -1132,7 +1144,7 @@ class FormTakeOff(QFormLayout):
 		buttonLayout = QHBoxLayout()
 
 		for uav in uavList:
-			if uav.state == State.CONNECTED:
+			if uav.GetState() == State.CONNECTED:
 		
 				sbox = QVBoxLayout()
 				b = QRadioButton(str(uav.GetDroneNo()))
@@ -1171,7 +1183,7 @@ class FormTakeOff(QFormLayout):
 	def submitTakeOffAll(self):
 
 		for uav in uavList:
-			if uav.state == State.CONNECTED:
+			if uav.GetState() == State.CONNECTED:
 				uav.SetState(State.TAKEOFF)
 
 		self.CloseDialog()
@@ -1445,6 +1457,7 @@ w = Window()
 sys.exit(App.exec())
 
 	
+
 
 
 
