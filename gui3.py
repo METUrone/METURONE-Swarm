@@ -72,7 +72,7 @@ class Map(QWidget):
         qp.setPen(penB)
         for uav in uavList:
             if uav.info["Bağlı"] == "Evet":
-                qp.drawEllipse(400+(uav.info["X"]*100)-5,400+(uav.info["Y"]*100)-5,10,10)
+                qp.drawEllipse(400+(uav.info["X"]*100)-5,400-(uav.info["Y"]*100)-5,10,10)
 
 
         qp.setPen(penP)
@@ -329,7 +329,7 @@ class Table(QTableWidget):
 		self.setStyleSheet("background-color : lightblue")
 		self.setRowCount(Max_Uav_Number)
 		self.setEditTriggers(QAbstractItemView.NoEditTriggers )
-		self.setColumnCount(7)
+		self.setColumnCount(8)
 		self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
 
@@ -499,7 +499,7 @@ class Form_Connect(QFormLayout  ):
 			with open("config/URIs.txt","r") as f:
 				uri = "ss" # no meaning other than saitss
 				for uri in f.readlines():
-
+					uri = uri[:-1]
 					self.AddSwarmURI(uri)
 		else:
 			msg = QMessageBox()
@@ -608,6 +608,7 @@ class Form_SetFormation(QFormLayout):
 			pose = poses[index[1]]
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
 			uavList[uav_id].SetDistanceToCenter( [center_x,center_y,center_z] , uavList[uav_id].GetDest())
+			uavList[uav_id].SetState(State.GO)
 			print(uav_id , pose)
 		self.CloseDialog()
 		
@@ -656,6 +657,7 @@ class Form_Hareket(QFormLayout):
 			groups.SetCenter(group,new_center)
 			for uav in groups.groups[group]:
 				uavList[uav].CalculateNewCenter(old_center,new_center)
+				uavList[uav].SetState(State.GO)
 		else:
 			self.PopUp()
 			return
@@ -920,6 +922,7 @@ class MapLayout(QHBoxLayout):
 
 		for index in indexes : 
 			uavList[uav_ids[index[0]]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
+			uavList[uav_ids[index[0]]].SetState(State.GO)
 			
 
 
@@ -1042,21 +1045,30 @@ class TrajectoryMap(QHBoxLayout):
 
 		centers = []
 
-		for pose in self.calculatedposes:
-			centers.append([pose[0],pose[1],height])
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
 
+			for pose in self.calculatedposes:
+				centers.append([pose[0],pose[1],height])
 
-
-		for uav in groups.groups[group]:
-	
-			uavList[uav].CalculateTrajectory(centers,speed,loop)
-			
-			
-		self.CloseDialog()
+			for uav in groups.groups[group]:
+		
+				uavList[uav].CalculateTrajectory(centers,speed,loop)
+		
+			self.CloseDialog()
+		
+		else :
+			self.PopUp()
+			return
 		
 		
 	def CloseDialog(self):
 		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
 		
 class FormTakeOff(QFormLayout):
 	def __init__(self, dialog ):
