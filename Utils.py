@@ -76,8 +76,7 @@ def lineFromPoints(P, Q):
 def normalize(v):
 	norm=np.linalg.norm(v, ord=2)
 	if norm==0:
-		ConsoleOutput("BRUH MOMENT! 0 division in normalize function.")
-		norm = 0.0001
+		return [0,0,0]
 	return v/norm
 
-print(normalize([0.2,0.3,0]))
+print(normalize([-0.2,0.3,0]))

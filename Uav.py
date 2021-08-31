@@ -40,7 +40,7 @@ class Uav():
 		self.hover_circle = 0.4
 		COMMON_SPEED_CONSTANT = 0.5
 		self.speed_clip_takeoff = COMMON_SPEED_CONSTANT
-		self.speed_constant_hover = 0.8
+		self.speed_constant_hover = 0.2
 		self.speed_constant_trajectory = 0.7
 		self.speed_clip_land = 0.2
 		self.speed_constant_circle = COMMON_SPEED_CONSTANT
@@ -49,7 +49,7 @@ class Uav():
 		self.speed_clip_go = 0.3
 
 		self.collision_constant_go = 1.8
-		self.collision_constant_hover = 1.6
+		self.collision_constant_hover = 1.3
 
 		self.circle_center = None
 		self.circle_radius = None
@@ -210,7 +210,7 @@ class Uav():
 
 
 		x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
-		y = self.circle_center[1] +self.circle_radius * math.cos(self.circle_radian)
+		y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
 		self.circle_radian += 0.005
 
 		speed_x = ((x - self.info["X"]) ) 
@@ -231,10 +231,16 @@ class Uav():
 			return [0,0,0]
 
 		else:
-			speed_x = ((self.dest[0] - self.info["X"]) ) * self.speed_constant_hover
-			speed_y = ((self.dest[1] - self.info["Y"]) ) * self.speed_constant_hover
-			speed_z = ((self.dest[2] - self.info["Z"]) ) * self.speed_constant_hover
+			speed_x = ((self.dest[0] - self.info["X"]) ) 
+			speed_y = ((self.dest[1] - self.info["Y"]) ) 
+			speed_z = ((self.dest[2] - self.info["Z"]) ) 
 			
+			speed = normalize([speed_x,speed_y,speed_z])
+
+			speed[0] *= self.speed_constant_hover
+			speed[1] *= self.speed_constant_hover
+			speed[2] *= self.speed_constant_hover
+
 			return [speed_x,speed_y,speed_z]
 
 	def CalculateGoSpeedCircle(self , uav):
@@ -242,12 +248,15 @@ class Uav():
 		self.circle_center = uav.GetPose()
 		pose = self.GetDest()
 		self.circle_radius = self.hover_circle
-		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1]) + math.pi / 2
-		speed = self.CalculateCircleSpeed()
+		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1]) + 0.1
+		speed = self.CalculateCircleSpeed()[:2]
 
-		speed[0] = self.clip(0.1,speed[0])
-		speed[1] = self.clip(0.1,speed[1])
+		speed = normalize(speed)
 
+		speed[0] *= 0.5
+		speed[1] *= 0.5
+
+		print("circle " , speed)
 		return [speed[0],speed[1],0.0]
 
 	
@@ -257,23 +266,23 @@ class Uav():
 
 		if clip_speed is None:
 			clip_speed = self.speed_clip_go
-		try:
-			for uav in uavList:
-				if uav.GetState() == State.HOVER:
-					distance = self.length_to_uav(uav)
-					start_point = self.GetPose()
-					end_point = self.GetDest()
-					circle_center = uav.GetPose()
+		
+		for uav in uavList:
+			if uav == self:
+				continue
+			if uav.GetState() == State.HOVER:
+				distance = self.length_to_uav(uav)
+				start_point = self.GetPose()
+				end_point = self.GetDest()
+				circle_center = uav.GetDest()
 
-					if distance < self.hover_circle:
-						if checkCollision( start_point , end_point , circle_center, self.hover_circle):
-							return self.CalculateGoSpeedCircle(uav)
-						self.SetState(State.NOT_CONNECTED)
-				
-		except:
-			self.SetState(State.NOT_CONNECTED)
+				if distance < self.hover_circle:
+					if checkCollision( start_point , end_point , circle_center, self.collision_circle):
+						return self.CalculateGoSpeedCircle(uav)
 
-		print("control")
+			
+
+		
 
 		if self.distance_to_dest() < self.hover_circle:
 		
@@ -283,11 +292,16 @@ class Uav():
 		speed_y = ((self.dest[1] - self.info["Y"]) ) 
 		speed_z = ((self.dest[2] - self.info["Z"]) )
 		
-		speed_x = self.clip(clip_speed,speed_x)
-		speed_y = self.clip(clip_speed,speed_y)
-		speed_z = self.clip(clip_speed,speed_z)
+		speed = normalize([speed_x,speed_y,speed_z])
+	
+		speed[0]*= self.speed_clip_go
+		speed[1]*= self.speed_clip_go
+		speed[2]*= self.speed_clip_go
 
-		return [speed_x,speed_y,speed_z]
+		print("normal",speed)
+
+
+		return speed
 
 	def CalculateTrajectorySpeed(self):
 
@@ -354,6 +368,12 @@ class Uav():
 				speed = self.CollisionSpeedHover(uav )
 				speed_x += speed[0]
 				speed_y += speed[1]
+
+		speed = normalize([speed_x,speed_y])
+
+		speed[0] *= 0.4
+		speed[1] *= 0.4
+
 
 		return [speed_x,speed_y,0]
 
