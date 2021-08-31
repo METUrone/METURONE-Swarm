@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 import numpy as np
 from PyQt5.QtWidgets import *
-
+from Utils import *
 
 
 
@@ -122,8 +122,10 @@ class Simulation(QWidget):
     def SimMode(self):
         if self.simulation_aktif:
             self.simulation_aktif = False
+            ConsoleOutput("Simülasyon başlatıldı")
         else :
             self.simulation_aktif = True
+            ConsoleOutput("Simülasyon durduruldu")
 
 
 

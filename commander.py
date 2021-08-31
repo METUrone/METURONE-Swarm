@@ -158,10 +158,10 @@ def run_sequence(scf,sequence):
 				collision_speed = uavList[DroneID].CalculateCollisionSpeed()
 				cf.commander.send_velocity_world_setpoint(collision_speed[0] + speed[0], collision_speed[1] + speed[1], speed[2] + collision_speed[2], 0)
 				pass
-		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
+		ConsoleOutput("İHA {} ile bağlantı kesildi.".format(DroneID))
 	except Exception as e:
 		print(e)
-		traceback.print_exc()		
+		traceback.print_exc()
 	
 
 
