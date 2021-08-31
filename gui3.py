@@ -895,12 +895,7 @@ class MapLayout(QHBoxLayout):
 			self.PopUp()
 			return
 
-		i = 0
-		for pose in self.calculatedposes :
-			uavList[i].SetDest(pose[0],pose[1],self.height.text())
-			i+=1
-
-		self.CloseDialog()
+		
 
 		initial_cost = []
 		uav_ids = []
@@ -912,7 +907,6 @@ class MapLayout(QHBoxLayout):
 				for pose in self.calculatedposes:
 					dist.append(uav.distance_to_dest([float(pose[0]),float(pose[1]),float(self.height.text())]))
 				initial_cost.append(dist)
-
 		groups.SetFormationInfos(int(self.group.text()),"Yok","Yok")
 
 
@@ -923,6 +917,8 @@ class MapLayout(QHBoxLayout):
 		for index in indexes : 
 			uavList[uav_ids[index[0]]].SetDest(self.calculatedposes[index[1]][0],self.calculatedposes[index[1]][1],self.height.text())
 			uavList[uav_ids[index[0]]].SetState(State.GO)
+
+		self.CloseDialog()
 			
 
 

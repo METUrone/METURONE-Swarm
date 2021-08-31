@@ -154,8 +154,8 @@ def run_sequence(scf,sequence):
 			else:
 				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],-math.pi,-math.pi,-math.pi,dest[0],dest[1],dest[2])
 			#logs[DroneID] += uavList[DroneID].GetState().name + "," + str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
-			if speed != None:
-				collision_speed = uavList[DroneID].HoverCollision(0.3)
+			if speed is not None:
+				collision_speed = uavList[DroneID].CalculateCollisionSpeed()
 				cf.commander.send_velocity_world_setpoint(collision_speed[0] + speed[0], collision_speed[1] + speed[1], speed[2] + collision_speed[2], 0)
 				pass
 		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
