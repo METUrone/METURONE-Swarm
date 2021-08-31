@@ -60,6 +60,10 @@ class Uav():
 		self.trajectory_loop = False
 		self.trajectory_speed = 0
 		self.trajectory_first = None
+		self.trajectory_start_time = None
+		self.trajectory_start_pose = None
+		self.trajectory_end_pose = None
+		self.trajectory_correction_constant = 0.1
 
 		self.distance_to_center = 0
 
@@ -125,11 +129,13 @@ class Uav():
 		if new_state == State.TAKEOFF:
 			pose = self.GetPose()
 			self.dest = [pose[0],pose[1],1.0]
-
-		if new_state == State.CONNECTED:
+		elif new_state == State.CONNECTED:
 			pose = self.GetPose()
 			self.dest = [pose[0],pose[1],0.0]
-
+		elif new_state == State.TRAJECTORY:
+			self.trajectory_start_time = datetime.datetime.now()
+			self.trajectory_end_pose = np.array(self.trajectory_centers[0]) + self.distance_to_center
+			self.trajectory_start_pose = np.array(self.GetPose())
 
 		self.state = new_state
 		self.info["Durum"] = self.states[self.state]
@@ -308,13 +314,14 @@ class Uav():
 
 		curr_pose = np.array(self.GetPose())
 		destinated_pose = np.array(self.trajectory_centers[0]) + self.distance_to_center
+		result = None
 
 		print(np.linalg.norm(curr_pose-destinated_pose))
 		print(self.trajectory_centers[0])
 		if np.linalg.norm(curr_pose-destinated_pose) > 0.2:
 			distance_between_centers = np.array(self.trajectory_centers[0]) - np.array(self.GetPose()) + self.distance_to_center
 			length = np.linalg.norm(distance_between_centers)
-			return [self.trajectory_speed * distance_between_centers[0] / length, self.trajectory_speed * distance_between_centers[1] / length, (self.dest[2] - self.info["Z"]) * self.speed_constant_trajectory]
+			result = [self.trajectory_speed * distance_between_centers[0] / length, self.trajectory_speed * distance_between_centers[1] / length, (self.dest[2] - self.info["Z"]) * self.speed_constant_trajectory]
 		else:
 			c = self.trajectory_centers.pop(0)
 			if self.trajectory_centers[0] == self.trajectory_first and self.trajectory_loop == False:
@@ -324,7 +331,10 @@ class Uav():
 			self.trajectory_centers.append(c)
 			return self.CalculateTrajectorySpeed()
 
-		
+
+		distance_to_trajectory_line = np.cross(self.trajectory_end_pose-self.trajectory_start_pose,curr_pose-self.trajectory_start_pose)/np.linalg.norm(self.trajectory_end_pose-self.trajectory_start_pose)
+		distance_to_trajectory_line *= self.trajectory_correction_constant
+		return np.array(result)+distance_to_trajectory_line
 
 
 
