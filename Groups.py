@@ -79,5 +79,4 @@ class Groups:
 
         
 groups = Groups()
-groups.init_group(5)
 

@@ -1561,63 +1561,7 @@ class Form_Wait(QFormLayout):
 			pass
 
 
-class TrajectoryForm(QFormLayout):
-	def __init__(self, dialog):
-		super().__init__()
-		self.dialog = dialog
-		self.positionContList = []
-		self.positionList = []
 
-		self.groupID = QLineEdit()
-		self.groupID.setText("0")
-		self.addRow("Grup :", self.groupID)
-
-		addPositionsButton = QPushButton("Konum Ekle")
-		addPositionsButton.clicked.connect(self.addPoses)
-
-		removePositionsButton = QPushButton("Sonuncu Konumu Sil")
-		removePositionsButton.clicked.connect(self.delPoses)
-
-		self.addRow(addPositionsButton)
-		self.addRow(removePositionsButton)
-
-		self.addPoses()
-
-	def addPoses(self):
-		container = QHBoxLayout()
-
-		x = QFormLayout()
-		xPos = QLineEdit()
-		xPos.setText("0")
-		x.addRow("X :", xPos)
-
-		y = QFormLayout()
-		yPos = QLineEdit()
-		yPos.setText("0")
-		y.addRow("Y : ",yPos)
-
-		z = QFormLayout()
-		zPos = QLineEdit()
-		zPos.setText("1.0")
-		z.addRow("Z :",zPos)
-
-		vel_ = QFormLayout()
-		vel = QLineEdit()
-		vel.setText("1.0")
-		vel_.addRow("Hız :",vel)
-
-		container.addLayout(x)
-		container.addLayout(y)
-		container.addLayout(z)
-		container.addLayout(vel_)
-
-		self.addRow(container)
-		self.positionContList.append(container)
-		self.positionList.append([xPos,yPos,zPos,vel,self.groupID])
-
-	def delPoses(self):
-		self.removeRow(self.positionContList[-1])
-		self.positionContList.pop()
 
 
 
