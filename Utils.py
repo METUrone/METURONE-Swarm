@@ -1,5 +1,6 @@
 import math
 from threading import Lock
+import numpy as np
 class Vec3:
 	def __init__(self,x,y,z):
 		self.x = x
@@ -40,3 +41,42 @@ def CheckUpdate():
 	console_output = ""
 	console_lock.release()
 	return x
+
+def checkCollision(point_start,point_end, circle_center,radius):
+	
+	# Finding the distance of line
+	# from center.
+	x = circle_center[0]
+	y = circle_center[1]
+
+	a,b,c = lineFromPoints(point_start,point_end)
+	print(a,b,c)
+	
+	dist = ((abs(a * x + b * y + c)) /
+		math.sqrt(a * a + b * b))
+
+	print(2/math.sqrt(17))
+	print(dist)
+
+	if radius >= dist:
+		return True
+	else:
+		return False
+    
+
+def lineFromPoints(P, Q):
+
+	a = Q[1] - P[1]
+	b = P[0] - Q[0]
+	c = a*(P[0]) + b*(P[1])
+
+	return [a,b,-c]
+
+
+def normalize(v):
+	norm=np.linalg.norm(v, ord=2)
+	if norm==0:
+		return [0,0,0]
+	return v/norm
+
+print(normalize([-0.2,0.3,0]))

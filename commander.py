@@ -25,8 +25,14 @@ import subprocess, sys
 # Change uris and sequences according to your setup
 logging.basicConfig(level=logging.ERROR)
 
-deques = [collections.deque(maxlen=1)] * 3
+deques = [collections.deque(maxlen=1)] * 4
 logs = [""]*Max_Uav_Number
+
+currentMissionList = {} # This dict. will be populated by MissionPlanner Form
+onMission = False # This variable will be changed by ExecuteMission form
+missionFinished = True
+missionNames = {}
+mCount = 0
 
 def Pos_thread(sequence):
 	append = sequence[0]
@@ -39,14 +45,13 @@ def Pos_thread(sequence):
 
 
 			lst = line.split("/")[1:]
-			uavList[int(lst[0]) - 1 ].info["X"] = -1*float(lst[2])
+			uavList[int(lst[0]) - 1].info["X"] = -float(lst[2])
 			uavList[int(lst[0]) - 1].info["Y"] = float(lst[1])
 			uavList[int(lst[0]) - 1].info["Z"] = float(lst[3])
 			#print("pose thread time is",datetime.datetime.now() - x, line)
 			#print(line)
 
-		print("problem!")
-	print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		#print("problem!")
 	# DO NOT DELETE THIS
 
 class Commander:
@@ -94,14 +99,14 @@ def wait_for_param_download(scf):
 
 
 charging_problem = 0
-def ReadBattery(charge):
+def ReadBattery(charge, cf, DroneID):
 	global charging_problem
 	charge_percent = (charge - 3.0) / (4.23 - 3.0) # https://forum.bitcraze.io/viewtopic.php?t=732
 	if charge_percent < 15:
 		charging_problem+=1
 		if charging_problem > 1e6:
 			print("Crazyflie {} has {}%% battery left, landing.".format(DroneID,charge_percent))
-			uav_list[DroneID].info["Bağlı"] = "Hayır"
+			uavList[DroneID].info["Bağlı"] = "Hayır"
 			land(cf,DroneID)
 			return False
 	return True
@@ -135,8 +140,10 @@ def run_sequence(scf,sequence):
 
 		#uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
 		while uavList[DroneID].GetState() != State.NOT_CONNECTED:
-			
-			
+
+			if (onMission):
+				pass
+
 			info = logger._queue.get()[1]
 			#uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"],info["pm.vbat"])
 			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
@@ -146,14 +153,17 @@ def run_sequence(scf,sequence):
 				return"""
 			
 			speed = uavList[DroneID].calculate_speed()
+			
+
 			dest = uavList[DroneID].GetDest()
-			if speed:
+			if speed is not None:
 				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],speed[0],speed[1],speed[2],dest[0],dest[1],dest[2])
 			else:
 				logs[DroneID] += "{},{},{},{},{},{},{},{},{},{}\n".format(uavList[DroneID].GetState().name,uavList[DroneID].info["X"],uavList[DroneID].info["Y"],uavList[DroneID].info["Z"],-math.pi,-math.pi,-math.pi,dest[0],dest[1],dest[2])
 			#logs[DroneID] += uavList[DroneID].GetState().name + "," + str(uavList[DroneID].info["X"]) + "," + str(uavList[DroneID].info["Y"]) + "," + str(uavList[DroneID].info["Z"]) + "," + str(speed[0]) + "," + str(speed[1]) + "," + str(speed[2]) + "\n"
-			if speed != None:
-				cf.commander.send_velocity_world_setpoint(speed[0], speed[1], speed[2], 0)
+			if speed is not None:
+				collision_speed = uavList[DroneID].CalculateCollisionSpeed()
+				cf.commander.send_velocity_world_setpoint(collision_speed[0] + speed[0], collision_speed[1] + speed[1], speed[2] + collision_speed[2], 0)
 				pass
 		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
 	except Exception as e:
