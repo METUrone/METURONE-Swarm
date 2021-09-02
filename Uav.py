@@ -40,7 +40,7 @@ class Uav():
 		self.hover_circle = 0.4
 		COMMON_SPEED_CONSTANT = 0.5
 		self.speed_clip_takeoff = COMMON_SPEED_CONSTANT
-		self.speed_constant_hover = 0.2
+		self.speed_constant_hover = 0.8
 		self.speed_constant_trajectory = 0.7
 		self.speed_clip_land = 0.2
 		self.speed_constant_circle = COMMON_SPEED_CONSTANT
@@ -235,11 +235,11 @@ class Uav():
 			speed_y = ((self.dest[1] - self.info["Y"]) ) 
 			speed_z = ((self.dest[2] - self.info["Z"]) ) 
 			
-			speed = normalize([speed_x,speed_y,speed_z])
+		
 
-			speed[0] *= self.speed_constant_hover
-			speed[1] *= self.speed_constant_hover
-			speed[2] *= self.speed_constant_hover
+			speed_x *= self.speed_constant_hover
+			speed_y *= self.speed_constant_hover
+			speed_z *= self.speed_constant_hover
 
 			return [speed_x,speed_y,speed_z]
 
@@ -248,13 +248,13 @@ class Uav():
 		self.circle_center = uav.GetPose()
 		pose = self.GetDest()
 		self.circle_radius = self.hover_circle
-		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1]) + 0.1
+		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1]) + 0.02
 		speed = self.CalculateCircleSpeed()[:2]
 
 		speed = normalize(speed)
 
-		speed[0] *= 0.5
-		speed[1] *= 0.5
+		speed[0] *= 0.1
+		speed[1] *= 0.1
 
 		print("circle " , speed)
 		return [speed[0],speed[1],0.0]
