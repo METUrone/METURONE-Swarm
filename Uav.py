@@ -8,11 +8,32 @@ import datetime
 import copy
 
 from mathutils.geometry import intersect_point_line
+from threading import Lock
 
 uavList = []
 MAX_SPEED = 0.15
 Max_Uav_Number = 10 # change
 #Max uav number : GUI için gerekli (table için)
+g_start_time = None
+prev_dest_trajectory = None
+time_lock = Lock()
+
+def SetStartTime(time, prev):
+	time_lock.acquire()
+	global g_start_time
+	global prev_dest_trajectory
+	if prev != prev_dest_trajectory:
+		g_start_time = time
+		prev_dest_trajectory = prev
+	time_lock.release()
+
+def ReadStartTime():
+	time_lock.acquire()
+	global g_start_time
+	result = g_start_time
+	time_lock.release()
+	return result
+
 
 class State(Enum):
 	NOT_CONNECTED = 0
@@ -65,7 +86,7 @@ class Uav():
 		self.trajectory_start_time = None
 		self.trajectory_start_pose = None
 		self.trajectory_end_pose = None
-		self.trajectory_correction_constant = 0.4
+		self.trajectory_correction_constant = 0.8
 
 		self.distance_to_center = 0
 
@@ -341,7 +362,11 @@ class Uav():
 			result = [self.trajectory_speed * distance_between_centers[0] / length, self.trajectory_speed * distance_between_centers[1] / length, (self.dest[2] - self.info["Z"]) * self.speed_constant_trajectory]
 		else:
 			self.trajectory_start_pose = destinated_pose
-			self.trajectory_start_time = datetime.datetime.now()
+
+			
+			SetStartTime(datetime.datetime.now(), self.trajectory_centers[0])
+			
+			self.trajectory_start_time = ReadStartTime()
 			c = self.trajectory_centers.pop(0)
 			if self.trajectory_centers[0] == self.trajectory_first and self.trajectory_loop == False:
 				self.EndTrajectory(self.info["Grup"])
@@ -355,7 +380,7 @@ class Uav():
 		
 		#closest_point = np.array(intersect_point_line(curr_pose,self.trajectory_start_pose,self.trajectory_end_pose)[0])
 		closest_point = np.array(self.trajectory_start_pose) + np.array(result) * (datetime.datetime.now() - self.trajectory_start_time).total_seconds()
-		print(closest_point, curr_pose,(datetime.datetime.now() - self.trajectory_start_time).total_seconds())
+		#print(closest_point, curr_pose,(datetime.datetime.now() - self.trajectory_start_time).total_seconds())
 		closest_vector = closest_point - curr_pose
 		closest_vector *= self.trajectory_correction_constant
 		return np.array(result) + np.array([closest_vector[0],closest_vector[1],0])

@@ -1164,7 +1164,7 @@ class TrajectoryMap(QHBoxLayout):
 				centers.append([pose[0],pose[1],height])
 
 			for uav in groups.groups[group]:
-		
+				SetStartTime(datetime.datetime.now(),centers[0])
 				uavList[uav].CalculateTrajectory(centers,speed,loop)
 		
 			self.CloseDialog()
