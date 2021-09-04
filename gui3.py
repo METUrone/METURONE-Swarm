@@ -634,16 +634,15 @@ class Form_SetFormation(QFormLayout):
 		
 			#################################
 		else :
-			center = self.CalculateCenter(formation_side)
-	
-			groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center[0])[0:5] +"  Y : " + str(center[1])[0:5] + "  Z : " + str(center[2])[0:5] , center[0],center[1],center[2])
+		
 			poses = formation_side
 			if len(poses) != len(group):
 				self.PopUp()
 				return
 			
-			return
-
+			center = self.CalculateCenter(formation_side)
+	
+			groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center[0])[0:5] +"  Y : " + str(center[1])[0:5] + "  Z : " + str(center[2])[0:5] , center[0],center[1],center[2])
 		
 		initial_cost = []
 		uav_ids = []
