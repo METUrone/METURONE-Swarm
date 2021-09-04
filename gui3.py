@@ -16,6 +16,9 @@ App = QApplication(sys.argv)
 from simulation import *
 from Utils import *
 
+import pickle
+
+
 class Map(QWidget):
     def __init__(self,form,size = 800):
         super().__init__()
@@ -116,7 +119,7 @@ class MapTrajectory(QWidget):
 
 	def paintEvent(self, ev):
 		qp = QtGui.QPainter(self)
-		print("a")
+
 		qp.setRenderHint(QtGui.QPainter.Antialiasing)
 		penC = QtGui.QPen(Qt.green,8)
 		penP = QtGui.QPen(Qt.red, 5)
@@ -207,11 +210,13 @@ class GroupInfos(QTableWidget):
 
 		self.init_labels()
 
+
 		#Table will fit the screen horizontally
 
 		self.horizontalHeader().setStretchLastSection(True)
-		self.horizontalHeader().setSectionResizeMode(
-            QHeaderView.Stretch)
+		
+
+
 
 
 	def StartCircle(self , group):
@@ -318,6 +323,17 @@ class GroupInfos(QTableWidget):
 			
 
 			i+=1
+
+	
+		self.horizontalHeader().setMinimumSectionSize(100)
+		self.horizontalHeader().setSectionResizeMode( 2,
+            QHeaderView.ResizeToContents)
+		self.horizontalHeader().setSectionResizeMode( 3,
+            QHeaderView.ResizeToContents)
+		self.horizontalHeader().setSectionResizeMode( 4,
+            QHeaderView.ResizeToContents)
+
+	
 			
 
 					
@@ -424,7 +440,7 @@ class PositionForm(QHBoxLayout):
 		
 	
 class Form_Connect(QFormLayout  ):
-	def __init__(self,dialog):
+	def __init__(self,dialog,load = None):
 
 		super().__init__()
 
@@ -533,60 +549,101 @@ class Form_Connect(QFormLayout  ):
 
 		
 class Form_SetFormation(QFormLayout):
-	def __init__(self,dialog):
-
+	def __init__(self,dialog,load = None):
 		super().__init__()
-
 		self.setVerticalSpacing(40) 
-
 		self.dialog = dialog 
 
-		# formasyon şeçimi
-		
 		self.cb = QComboBox()
 		for i in formations.formations:
 			self.cb.addItem(i)
-		self.addRow(QLabel("Formasyon : "), self.cb)
-		
-		
+
 		# Center (x , y , z) seçimi
 		self.positionform = PositionForm()
-		self.addRow("Merkez : ",self.positionform)
-
-
+		
 		self.distance = QLineEdit()
 		self.distance.setText("1.0")
-		self.addRow("Swarmlar arası uzaklık : ",self.distance)
-
 		#grup seçimi
 		self.group = QLineEdit()
-		self.group.setText("0")
-		self.addRow(QLabel("Grup : " ) , self.group)
+		
 
-		#submit ve close buttonu
+		if load is not None:
+			self.cb.setCurrentIndex(load[0]) 
+			self.positionform.xPos.setText(load[1][0]) 
+			self.positionform.yPos.setText(load[1][1]) 
+			self.positionform.zPos.setText(load[1][2]) 
+			self.distance.setText(load[2])  
+			self.group.setText(load[3])  
+			self.addRow(QLabel("Formasyon : "), self.cb)
+			self.addRow("Merkez : ",self.positionform)
+			self.addRow("Swarmlar arası uzaklık : ",self.distance)
+			self.addRow(QLabel("Grup : " ) , self.group)
+		# formasyon şeçimi
+		else:
+			self.distance.setText("1.0")
+			self.group.setText("0")
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+			self.addRow(QLabel("Formasyon : "), self.cb)
+			self.addRow("Merkez : ",self.positionform)
+			self.addRow("Swarmlar arası uzaklık : ",self.distance)
+			self.addRow(QLabel("Grup : " ) , self.group)
+			self.addWidget(self.buttonbox)
+
+		
+	def CalculateCenter(self,poses):
+		x = 0
+		y = 0
+		for pose in poses:
+			x += pose[0]
+			y += pose[1]
+		x /= len(poses)
+		y /= len(poses)
+
+		return[x,y,poses[0][2]]
 
 
-		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-		buttonbox.accepted.connect(self.submit)
-		buttonbox.rejected.connect(self.CloseDialog)
-		self.addWidget(buttonbox)
+	def GetParam(self):
+
+		return [self.cb.currentIndex(),[self.positionform.xPos.text(),self.positionform.yPos.text(),self.positionform.zPos.text()] , self.distance.text(),self.group.text()]
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Özel formasyonlar için Drone sayısı aynı olmak zorunda." )
+		msg.exec_()
 
 	def submit(self):
-
+		
 		group = groups.groups[int(self.group.text())]
 		distance = float(self.distance.text())
 		center_x = float(self.positionform.xPos.text())
 		center_y = float(self.positionform.yPos.text())
 		center_z = float(self.positionform.zPos.text())
 		formation_side = formations.formations[self.cb.currentText()]
-		groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x) +"  Y : " + str(center_y) + "  Z : " + str(center_z) , center_x,center_y,center_z)
 
-		#################################
-		formation = Formation()
-		formation.Cokgen(max(formation_side,len(group)), distance , formation_side , Pose(center_x,center_y,center_z))
-		poses = formation.GetSides()
+
+		if type(formation_side) == int :
+			groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x)[0:5] +"  Y : " + str(center_y)[0:5] + "  Z : " + str(center_z)[0:5] , center_x,center_y,center_z)
+
+			#################################
+			formation = Formation()
+			formation.Cokgen(max(formation_side,len(group)), distance , formation_side , Pose(center_x,center_y,center_z))
+			poses = formation.GetSides()
+		
+			#################################
+		else :
+			center = self.CalculateCenter(formation_side)
 	
-		#################################
+			groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center[0])[0:5] +"  Y : " + str(center[1])[0:5] + "  Z : " + str(center[2])[0:5] , center[0],center[1],center[2])
+			poses = formation_side
+			if len(poses) != len(group):
+				self.PopUp()
+				return
+			
+			return
+
 		
 		initial_cost = []
 		uav_ids = []
@@ -609,7 +666,7 @@ class Form_SetFormation(QFormLayout):
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
 			uavList[uav_id].SetDistanceToCenter( [center_x,center_y,center_z] , uavList[uav_id].GetDest())
 			uavList[uav_id].SetState(State.GO)
-			print(uav_id , pose)
+
 		self.CloseDialog()
 		
 	def CloseDialog(self):
@@ -617,29 +674,36 @@ class Form_SetFormation(QFormLayout):
 
 
 class Form_Hareket(QFormLayout):
-	def __init__(self,dialog):
+	def __init__(self,dialog,load = None):
 
 		super().__init__()
-
 		self.setVerticalSpacing(40) 
-
 		self.dialog = dialog 
-		
-		
-		# Center (x , y , z) seçimi
 		self.positionform = PositionForm()
-		self.addRow("Hedef : ",self.positionform)
-
-		#grup seçimi
 		self.group = QLineEdit()
-		self.group.setText("0")
-		self.addRow(QLabel("Grup : " ) , self.group)
+		
+		if load is not None:
+			self.positionform.xPos.setText(load[0][0]) 
+			self.positionform.yPos.setText(load[0][1]) 
+			self.positionform.zPos.setText(load[0][2]) 
+			self.group.setText(load[1])  
 
-		#submit ve close buttonu
-		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-		buttonbox.accepted.connect(self.submit)
-		buttonbox.rejected.connect(self.CloseDialog)
-		self.addWidget(buttonbox)
+		else:
+			
+			self.group.setText("0")
+			#submit ve close buttonu
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+			self.addWidget(self.buttonbox)
+
+
+		self.addRow("Hedef : ",self.positionform)
+		self.addRow(QLabel("Grup : " ) , self.group)
+		
+
+	def GetParam(self):
+		return [[self.positionform.xPos.text(),self.positionform.yPos.text(),self.positionform.zPos.text()] , self.group.text()]
 
 	def submit(self):
 
@@ -679,32 +743,42 @@ class Form_Hareket(QFormLayout):
 
 		
 class Form_Split(QFormLayout):
-	def __init__(self, dialog ):
+	def __init__(self, dialog , load = None ):
 		super().__init__()
-
-
+		
+		self.bs = []
 		
 		self.dialog = dialog
 
-
 		self.cb = QComboBox()
-
-		
+		for i in range(len(groups.groups)):
+				self.cb.addItem("              " + str(i))
 
 		self.cb.setMaximumWidth(100)
 
-		for i in range(len(groups.groups)):
-			self.cb.addItem("              " + str(i))
-		self.addRow(QLabel("Group : "), self.cb)
+		if load is not None:
+			self.cb.setCurrentIndex(load[0])
+			self.CreateGroupsBox(load[1])
+		else:
+			
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+			self.addWidget(self.buttonbox)
+			self.CreateGroupsBox()
 
 		self.cb.currentTextChanged.connect(self.CreateGroupsBox)
+		self.addRow(QLabel("Group : "), self.cb)
 		
-		self.CreateGroupsBox()
+
 		
-		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-		buttonbox.accepted.connect(self.submit)
-		buttonbox.rejected.connect(self.CloseDialog)
-		self.addWidget(buttonbox)
+
+
+	def GetParam(self):
+		bs =[]
+		for i in self.bs:
+			bs.append(i.isChecked())
+		return [self.cb.currentIndex(),bs ]
 
 	def submit(self):
 
@@ -731,8 +805,8 @@ class Form_Split(QFormLayout):
 
 
 		self.dialog.close()
-
-	def CreateGroupsBox(self):
+	############################### İlerde Kesin Değiştir
+	def CreateGroupsBox(self , load = [False] * 10):
 		self.layout = QHBoxLayout()
 		
 		self.layout.setAlignment(Qt.AlignCenter)
@@ -740,11 +814,13 @@ class Form_Split(QFormLayout):
 		self.bs = []
 
 		group = int(self.cb.currentText())
-
-		for i in groups.groups[group]:
+		i = 0
+		for uav in groups.groups[group]:
 
 			sbox = QVBoxLayout()
-			b = QRadioButton(str(i))
+			b = QRadioButton(str(uav))
+			b.setChecked(load[i])
+			i+=1
 			self.bs.append(b)
 			sbox.addWidget(b)
 			box = QGroupBox()
@@ -755,28 +831,35 @@ class Form_Split(QFormLayout):
 		self.insertRow(1,"Group :",self.layout)
 
 class Form_Assemble(QFormLayout):
-	def __init__(self, dialog):
+	def __init__(self, dialog , load = None):
 		super().__init__()		
 		self.dialog = dialog
 
-
 		self.first = QComboBox()
 		self.second = QComboBox()
-
 		for i in range(len(groups.groups)):
 			self.first.addItem(str(i))
 			self.second.addItem(str(i))
+
+		if load is not None:
+			self.first.setCurrentIndex(load[0])
+			self.second.setCurrentIndex(load[1])
+
+		else:
+
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+			self.addWidget(self.buttonbox)
 
 
 		self.addRow("Eski Grup :" , self.first)
 		self.addRow("Yeni Grup :" ,self.second)
 
 		
-		
-		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-		buttonbox.accepted.connect(self.submit)
-		buttonbox.rejected.connect(self.CloseDialog)
-		self.addWidget(buttonbox)
+
+	def GetParam(self):
+		return [self.first.currentIndex() ,self.second.currentIndex()]
 
 	def submit(self):
 
@@ -824,6 +907,12 @@ class MapLayout(QHBoxLayout):
 		self.form.setAlignment(Qt.AlignCenter)
 
 
+		self.name = QLineEdit()
+		self.name.setText("formasyon " + str(len(formations.formations)))
+		self.name.setMaximumWidth(100)
+		self.name.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Yükseklik",self.name )
+
 
 
 		self.height = QLineEdit()
@@ -855,6 +944,10 @@ class MapLayout(QHBoxLayout):
 
 		self.form.setVerticalSpacing(20)
 
+		save_button = QPushButton("Formasyonu Kaydet")
+		save_button.clicked.connect(self.SaveFormation)
+		self.form.addWidget(save_button)
+
 		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 		buttonbox.accepted.connect(self.submit)
 		buttonbox.rejected.connect(self.CloseDialog)
@@ -865,6 +958,44 @@ class MapLayout(QHBoxLayout):
 		box.setLayout(self.form)		
 		self.addWidget(box)
 
+	def PopUpNoName(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Eksik Bilgi" )
+		msg.exec_()
+	
+	def PopUpNoDrone(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Drone Eklenmedi" )
+		msg.exec_()
+
+	def PopUpSuccSave(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Formasyon Kaydedildi" )
+		msg.exec_()
+
+	def SaveFormation(self):
+
+		if self.name.text() == "":
+			self.PopUpNoName()
+			return
+		elif len(self.calculatedposes) == 0:
+			self.PopUpNoDrone()
+			return
+
+		else:
+			tmp = self.calculatedposes
+			for i in tmp:
+				i.append(float(self.height.text()))
+			formations.formations[self.name.text()] = tmp
+			self.PopUpSuccSave()
+			return
+
+
+
+		
 
 	def calculate(self):
 		try :
@@ -890,8 +1021,11 @@ class MapLayout(QHBoxLayout):
 			self.form.addRow(label)
 			self.labels.append(label)
 	def submit(self):
+		if int(self.group.text()) < 0 or int(self.group.text()) >= len(groups.groups):
+			self.PopUp2()
+			return
 
-		if(len(self.calculatedposes)) != len(groups.groups[int(self.group.text())]):
+		if len(self.calculatedposes) != len(groups.groups[int(self.group.text())]):
 			self.PopUp()
 			return
 
@@ -927,10 +1061,17 @@ class MapLayout(QHBoxLayout):
 		msg.setWindowTitle("Dikkat")
 		msg.setText( str(len(groups.groups[int(self.group.text())])) + " Pozisyon Gerekli " + str(len(self.calculatedposes)) + " Pozisyon Verildi" )
 		msg.exec_()
+
+	def PopUp2(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText("Verilen Grup Mevcut Değil" )
+		msg.exec_()
 		
 		
 	def CloseDialog(self):
 		self.dialog.close()
+
 
 
 class TrajectoryMap(QHBoxLayout):
@@ -1225,6 +1366,626 @@ class FormTakeOff(QFormLayout):
 		self.insertRow(1,"Group :",self.layout)
 
 
+class TrajectoryMap(QHBoxLayout):
+	def __init__(self , dialog):
+		super().__init__()
+		Mbox = QGroupBox() 
+		Mvbox = QVBoxLayout()
+		self.dialog = dialog
+
+		self.pos = []
+		self.calculatedposes = []
+		self.labels = []
+		self.count = 0
+
+		map = MapTrajectory(self)
+		map.setMinimumWidth(800)
+		map.setMaximumHeight(800)
+		Mvbox.addWidget(map)
+		Mbox.setLayout(Mvbox)
+		self.addWidget(Mbox)
+
+		box = QGroupBox()
+		self.form = QFormLayout()
+		self.form.setAlignment(Qt.AlignCenter)
+
+
+
+
+		
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] , ["İHA Ayırma / Ekleme" , 3, 0], ["Uçuş Planlaması Yap",3,1], ["Planlanan Uçuşa Başla",3,2]]
+
+		self.height = QLineEdit()
+		self.height.setText("1.0")
+		self.height.setMaximumWidth(100)
+		self.height.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Yükseklik",self.height )
+
+
+		self.group = QLineEdit()
+		self.group.setText("0")
+		self.group.setMaximumWidth(100)
+		self.group.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Grup",self.group )
+
+		self.speed = QLineEdit()
+		self.speed.setText("0.3")
+		self.speed.setMaximumWidth(100)
+		self.speed.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Hız",self.speed )
+
+		self.loop = QRadioButton()
+		self.form.addRow("Döngü",self.loop)
+
+
+		self.uzaklık = QLineEdit()
+		self.uzaklık.setText("0.5")
+		self.uzaklık.setMaximumWidth(100)
+		self.uzaklık.setAlignment(Qt.AlignCenter)
+		self.form.addRow("İki grid arası uzaklık",self.uzaklık)
+
+		self.setVerticalSpacing(50)
+
+
+
+
+		self.buttons[0].clicked.connect(self.drone_connect)
+		self.buttons[1].clicked.connect(self.drone_dissconnect)
+		self.buttons[2].clicked.connect(self.DroneTakeOff)
+		self.buttons[3].clicked.connect(self.create_Formation)
+		self.buttons[4].clicked.connect(self.mission_SetFormation)
+		self.buttons[5].clicked.connect(self.mission_hareket)
+		self.buttons[6].clicked.connect(self.SetTrajectory)
+		
+		self.buttons[7].clicked.connect(self.mission_split)
+		self.buttons[8].clicked.connect(self.mission_assemble)
+
+	def DroneTakeOff(self):
+		dialog = QDialog()
+		form = FormTakeOff(dialog)
+		self.CreateDialog(form,dialog)
+
+
+
+		calculate = QPushButton("Hesapla")
+		self.form.addRow(calculate)
+		calculate.clicked.connect(self.calculate)
+
+		self.form.setVerticalSpacing(20)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submit)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+
+		self.form.addWidget(buttonbox)
+
+		box.setLayout(self.form)		
+		self.addWidget(box)
+
+
+	def calculate(self):
+		try :
+			float(self.uzaklık.text())
+			self.update_pos()
+		except:
+			self.uzaklık.setText("Lütfen Sayı Giriniz")
+		
+	
+	def update_pos(self):
+
+		for i in self.labels:
+			self.form.removeRow(i)
+
+		self.labels = []
+		#self.pos.sort()
+		self.calculatedposes = []
+		for i in self.pos:
+			x = (i[0] - 395)/40 * float(self.uzaklık.text())
+			y = -(i[1] - 395)/40 * float(self.uzaklık.text())
+			self.calculatedposes.append([x,y])
+			label = QLabel("Pos " + str(self.pos.index(i)) + " :     X  :" + str(x)  + "     Y :" + str(y))
+			self.form.addRow(label)
+			self.labels.append(label)
+	def submit(self):
+
+
+		group = int(self.group.text())
+		height = float(self.height.text())
+		speed = float(self.speed.text())
+		loop = self.loop.isChecked()
+
+		centers = []
+
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
+
+			for pose in self.calculatedposes:
+				centers.append([pose[0],pose[1],height])
+
+			for uav in groups.groups[group]:
+		
+				uavList[uav].CalculateTrajectory(centers,speed,loop)
+		
+			self.CloseDialog()
+		
+		else :
+			self.PopUp()
+			return
+		
+		
+	def CloseDialog(self):
+		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
+		
+class FormTakeOff(QFormLayout):
+	def __init__(self, dialog ,load = None):
+		super().__init__()
+
+
+		
+		self.dialog = dialog
+		self.takeoff_drones = []
+		self.land_drones = []
+
+
+		self.tabs = QTabWidget()
+		self.takeoff_tab = QWidget()
+		self.land_tab = QWidget()
+
+		self.tabs.addTab(self.takeoff_tab,"Kalkış")
+		self.tabs.addTab(self.land_tab,"İniş")
+
+		takeoff_layout = self.SetTakeOffTab()
+		land_layout = self.SetLandTab()
+
+		self.takeoff_tab.setLayout(takeoff_layout)
+		self.land_tab.setLayout(land_layout)
+
+		self.SetTakeOffTab()
+		self.SetLandTab()
+		
+
+		self.addWidget(self.tabs)
+
+
+	def GetParam(self):
+		return None
+	
+		
+	def SetLandTab(self):
+		land_tab_layout = QVBoxLayout()
+
+		buttonLayout = QHBoxLayout()
+
+		for uav in uavList:
+			if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
+				sbox = QVBoxLayout()
+				b = QRadioButton(str(uav.GetDroneNo()))
+				self.land_drones.append(b)
+				sbox.addWidget(b)
+				box = QGroupBox()
+				box.setMaximumHeight(80)
+				box.setLayout(sbox)
+				buttonLayout.addWidget(box)
+		land_tab_layout.addLayout(buttonLayout)
+
+		land_all = QPushButton("Hepsini İndir")
+		land_all.clicked.connect(self.submitLandAll)
+		land_tab_layout.addWidget(land_all)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submitLand)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+		land_tab_layout.addWidget(buttonbox)
+		
+		return land_tab_layout
+
+	def submitLandAll(self):
+		for uav in uavList:
+			if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
+				uav.SetState(State.CONNECTED)
+
+
+		self.CloseDialog()
+
+	def submitLand(self):
+
+		for uav in self.land_drones:
+			if uav.isChecked():
+				uavList[int(uav.text())].SetState(State.CONNECTED)
+			
+
+		self.CloseDialog()
+
+
+	def SetTakeOffTab(self):
+		takeoff_tab_layout = QVBoxLayout()
+
+		buttonLayout = QHBoxLayout()
+
+		for uav in uavList:
+			if uav.GetState() == State.CONNECTED:
+		
+				sbox = QVBoxLayout()
+				b = QRadioButton(str(uav.GetDroneNo()))
+				self.takeoff_drones.append(b)
+				sbox.addWidget(b)
+				box = QGroupBox()
+				box.setMaximumHeight(80)
+				box.setLayout(sbox)
+				buttonLayout.addWidget(box)
+		takeoff_tab_layout.addLayout(buttonLayout)
+
+		takeoff_all = QPushButton("Hepsini Kaldır")
+		takeoff_all.clicked.connect(self.submitTakeOffAll)
+		takeoff_tab_layout.addWidget(takeoff_all)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submitTakeOff)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+		takeoff_tab_layout.addWidget(buttonbox)
+		
+		return takeoff_tab_layout
+				
+
+	def submitTakeOff(self):
+
+
+		for uav in self.takeoff_drones:
+			if uav.isChecked():
+				uavList[int(uav.text())].SetState(State.TAKEOFF)
+		
+
+
+		self.CloseDialog()
+
+	def submitTakeOffAll(self):
+
+		for uav in uavList:
+			if uav.GetState() == State.CONNECTED:
+				uav.SetState(State.TAKEOFF)
+
+		self.CloseDialog()
+		
+		
+	def CloseDialog(self):
+
+
+		self.dialog.close()
+
+	def CreateGroupsBox(self):
+		self.layout = QHBoxLayout()
+		
+		self.layout.setAlignment(Qt.AlignCenter)
+
+		self.bs = []
+
+		group = int(self.cb.currentText())
+
+		for i in groups.groups[group]:
+
+			sbox = QVBoxLayout()
+			b = QRadioButton(str(i))
+			self.bs.append(b)
+			sbox.addWidget(b)
+			box = QGroupBox()
+			box.setLayout(sbox)
+			self.layout.addWidget(box)
+		
+		self.removeRow(1)
+		self.insertRow(1,"Group :",self.layout)
+
+Planned_Missions = {}
+
+class MissionPlanner(QHBoxLayout):
+	def __init__(self, dialog):
+		super().__init__()
+		self.dialog = dialog
+
+		self.missions = []
+		self.missionList = QFormLayout()
+		
+		
+
+		w = QWidget()
+
+		w.setLayout(self.missionList)
+		scrollArea = QScrollArea()
+		scrollArea.setWidgetResizable(True)
+		scrollArea.setWidget(w)
+		self.addWidget(scrollArea)
+
+		missionButtons = QVBoxLayout()
+		missionNameContainer = QFormLayout()
+
+
+		self.missionName = QLineEdit()
+		self.missionName.setText("Görev " + str(len(Planned_Missions)))
+		missionNameContainer.addRow("Görev Adı: ", self.missionName)
+		missionButtons.addLayout(missionNameContainer)
+		self.addLayout(missionButtons)
+		
+
+		buttonIdle = "QPushButton{background-color: #4CAF50; /* Green */border: none;color: white; padding: 8px 16px; text-align: center; text-decoration: none; font-size: 16px; margin: 4px 2px;} "
+		buttonIdle_close = "QPushButton{background-color: red; /* Green */border: none;color: white; padding: 8px 16px; text-align: center; text-decoration: none; font-size: 16px; margin: 4px 2px;} "
+		buttonIdle_start = "QPushButton{background-color: lightblue; /* Green */border: none;color: white; padding: 8px 16px; text-align: center; text-decoration: none; font-size: 16px; margin: 4px 2px;} "
+		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
+		buttonHover = "QPushButton::hover{background-color : grey}"
+
+		mission_buttons_names = ["Planı Kaydet" , "Planı Yükle" , "Bekleme Süresi Ekle","Kalkış/İnis" , "Formasyon Oluştur/Değiştir","Sürüyü Hareket Ettir","Sürüyü Ayır","Sürüleri Birleştir","Sonuncuyu Sil","Planı Başlat" ]
+		mission_buttons = []
+		button_style = buttonIdle + buttonPressed + buttonHover
+		button_style_close = buttonIdle_close + buttonPressed + buttonHover
+		button_style_start = buttonIdle_start + buttonPressed + buttonHover
+		
+
+		for mission in mission_buttons_names:
+			button = QPushButton(mission)
+			button.setStyleSheet(button_style)
+			missionButtons.addWidget(button)
+			mission_buttons.append(button)
+
+		mission_buttons[-1].setStyleSheet(button_style_start)
+
+		mission_buttons[0].clicked.connect(self.savePlanButtonClicked)
+		mission_buttons[1].clicked.connect(self.loadPlanButtonClicked)
+		mission_buttons[2].clicked.connect(self.waitButtonClicked)
+		mission_buttons[3].clicked.connect(self.takeoff_button_clicked)
+		mission_buttons[4].clicked.connect(self.formation)
+		mission_buttons[5].clicked.connect(self.movement)
+		mission_buttons[6].clicked.connect(self.divide)
+		mission_buttons[7].clicked.connect(self.combine)
+		mission_buttons[8].clicked.connect(self.removeItem)
+		mission_buttons[9].clicked.connect(self.StartMission)
+
+		
+
+		# TODO: Fix buttons being too large
+		close = QPushButton("Close")
+		close.clicked.connect(self.CloseDialog)
+		close.setStyleSheet(button_style_close)
+		missionButtons.addWidget(close)
+
+	def takeoff_button_clicked(self):
+		takeoffLayout = FormTakeOff(self.dialog)
+		takeoffLayout.setVerticalSpacing(10)
+
+
+		if self.missions != []:
+			takeoffLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(takeoffLayout)
+		self.missions.append(takeoffLayout)
+
+
+	def StartMission(self):
+		self.CloseDialog()
+		for mission in self.missions:
+			mission.submit()
+
+
+
+	def LoadHelper(self,missions):
+
+		for mission in missions:
+			if self.missions != []:
+				mission.insertRow(0,QHLine())
+			self.missionList.addRow(mission)
+			self.missions.append(mission)
+
+	def savePlanButtonClicked(self):
+		
+		if self.missionName.text() == "":
+			self.PopUpNoName()
+			return
+
+		elif len(self.missions) == 0:
+			self.PopUpNoSave()
+			return
+
+		else :
+			missions_tmp = []
+			for mission in self.missions:
+				type_of = type(mission)
+				params = mission.GetParam()
+				tmp = type_of(self.dialog,params)
+				tmp.setVerticalSpacing(10)
+				missions_tmp.append(tmp)
+			Planned_Missions[self.missionName.text()] = missions_tmp
+			self.removeItemAll()
+			self.PopUpSuccSave()
+			return
+
+		
+
+	def PopUpNoName(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Plan adı giriniz" )
+		msg.exec_()
+	def PopUpNoSave(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( " 0 Görev " )
+		msg.exec_()
+	def PopUpSuccSave(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Plan Kaydedildi" )
+		msg.exec_()
+	def PopUpNoLoad(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Yüklenebilecek Bir Plan Yok" )
+		msg.exec_()
+
+
+	def loadPlanButtonClicked(self):
+		
+		if len(Planned_Missions) == 0:
+			self.PopUpNoLoad()
+			return
+		else :
+			dialog = QDialog()
+			formation_layout = Form_LoadMissions(dialog , self)
+			dialog.resize(300,200)
+			dialog.setWindowModality(Qt.ApplicationModal)
+			dialog.setLayout(formation_layout)
+			dialog.exec_()
+
+		
+
+
+	def waitButtonClicked(self):
+		waitLayout = Form_Wait(None)
+		waitLayout.setVerticalSpacing(10)
+
+		if self.missions != []:
+			waitLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(waitLayout)
+		self.missions.append(waitLayout)
+
+		
+
+	def formation(self):
+		formationLayout = Form_SetFormation(self.dialog)
+		formationLayout.removeWidget(formationLayout.buttonbox)
+		formationLayout.setVerticalSpacing(10)
+
+		if self.missions != []:
+			formationLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(formationLayout)
+		self.missions.append(formationLayout)
+
+
+	def movement(self):
+		movementLayout = Form_Hareket(self.dialog)
+		movementLayout.removeWidget(movementLayout.buttonbox)
+		movementLayout.setVerticalSpacing(10)
+
+		if self.missions != []:
+			movementLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(movementLayout)
+		self.missions.append(movementLayout)
+
+
+
+
+
+
+	def divide(self):
+		divideLayout = Form_Split(self.dialog)
+		divideLayout.removeRow(divideLayout.buttonbox)
+		divideLayout.setVerticalSpacing(10)
+
+		if self.missions != []:
+			divideLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(divideLayout)
+		self.missions.append(divideLayout)
+
+
+
+	def combine(self):
+		combineLayout = Form_Assemble(self.dialog)
+		combineLayout.removeRow(combineLayout.buttonbox)
+		combineLayout.setVerticalSpacing(10)
+
+		if self.missions != []:
+			combineLayout.insertRow(0,QHLine())
+
+		self.missionList.addRow(combineLayout)
+		self.missions.append(combineLayout)
+
+
+
+	def removeItem(self):
+		if len(self.missions) == 0:
+			return
+		self.missionList.removeRow(self.missions[-1])
+		self.missions.pop()
+
+	def removeItemAll(self):
+		while len(self.missions) != 0:
+			self.removeItem()
+
+
+	def CloseDialog(self):
+		self.dialog.close()
+
+
+
+class Form_LoadMissions(QFormLayout):
+	def __init__(self, dialog ,mission_planner):
+		super().__init__()
+		self.dialog = dialog
+
+		self.cb = QComboBox()
+		self.mission_planner = mission_planner
+
+
+		for i in Planned_Missions:
+			self.cb.addItem(i)
+
+		self.addRow("Plan" , self.cb)
+
+		self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		self.buttonbox.accepted.connect(self.submit)
+		self.buttonbox.rejected.connect(self.CloseDialog)
+		self.addWidget(self.buttonbox)
+
+	def submit(self):
+
+		self.CloseDialog()
+		self.mission_planner.removeItemAll()
+
+		self.mission_planner.LoadHelper(Planned_Missions[str(self.cb.currentText())])
+
+		
+	def CloseDialog(self):
+		self.dialog.close()
+
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
+
+class Form_Wait(QFormLayout):
+	def __init__(self , dialog , load = None):
+		super().__init__()
+		self.time = QLineEdit("0")
+		if load is not None:
+			self.time.setText(load[0])
+
+		self.addRow("Bekleme süresi: ", self.time)
+		self.empty = False
+
+
+
+
+	def GetParam(self):
+		return [self.time.text()]
+	def submit(self):
+		end_time = float(self.time.text()) + time.time()
+		while time.time() < end_time:
+			pass
+
+
+
+
+
 
 
 
@@ -1235,7 +1996,7 @@ class buttons(QGridLayout):
 		super().__init__()
 
 		
-		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] , ["İHA Ayırma / Ekleme" , 3, 0], ["Uçuş Planlaması Yap",3,1], ["Planlanan Uçuşa Başla",3,2]]
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0] ]
 
 		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
@@ -1263,9 +2024,12 @@ class buttons(QGridLayout):
 		self.buttons[4].clicked.connect(self.mission_SetFormation)
 		self.buttons[5].clicked.connect(self.mission_hareket)
 		self.buttons[6].clicked.connect(self.SetTrajectory)
-		
+
 		self.buttons[7].clicked.connect(self.mission_split)
 		self.buttons[8].clicked.connect(self.mission_assemble)
+
+		self.buttons[9].clicked.connect(self.mission_plan)
+
 
 	def DroneTakeOff(self):
 		dialog = QDialog()
@@ -1318,6 +2082,16 @@ class buttons(QGridLayout):
 		form = Form_Split(dialog)
 		self.CreateDialog(form,dialog)
 
+	def mission_plan(self):
+		dialog = QDialog()
+		form = MissionPlanner(dialog)
+		dialog.resize(1200,400)
+		dialog.setWindowModality(Qt.ApplicationModal)
+		dialog.setLayout(form)
+		dialog.exec_()
+
+
+
 	def CreateDialog2(self , form,dialog):
 		
 		dialog.resize(1200,1000)
@@ -1337,6 +2111,10 @@ class buttons(QGridLayout):
 
 
 
+def SaveFormations():
+	formation_save_file = open("config/formations.pkl", "wb")
+	pickle.dump(formations.formations, formation_save_file)
+	formation_save_file.close()
 
 
 
@@ -1449,6 +2227,10 @@ class Window(QWidget):
 		self.simulation.sc.draw()
 
 	def closeEvent(self,event):
+
+		SaveFormations()
+		
+
 		curr = datetime.datetime.now()
 		idx = 0
 		os.mkdir(curr.strftime("logs/%d.%m.%Y-%H:%M:%S"))
@@ -1463,6 +2245,7 @@ class Window(QWidget):
 
 w = Window()
 sys.exit(App.exec())
+
 
 	
 
