@@ -15,7 +15,9 @@ import os
 App = QApplication(sys.argv)
 from simulation import *
 from Utils import *
+
 import pickle
+
 
 class Map(QWidget):
     def __init__(self,form,size = 800):
@@ -117,6 +119,7 @@ class MapTrajectory(QWidget):
 
 	def paintEvent(self, ev):
 		qp = QtGui.QPainter(self)
+
 		qp.setRenderHint(QtGui.QPainter.Antialiasing)
 		penC = QtGui.QPen(Qt.green,8)
 		penP = QtGui.QPen(Qt.red, 5)
@@ -620,6 +623,7 @@ class Form_SetFormation(QFormLayout):
 		center_z = float(self.positionform.zPos.text())
 		formation_side = formations.formations[self.cb.currentText()]
 
+
 		if type(formation_side) == int :
 			groups.SetFormationInfos(int(self.group.text()) , self.cb.currentText() , "X : " +str(center_x)[0:5] +"  Y : " + str(center_y)[0:5] + "  Z : " + str(center_z)[0:5] , center_x,center_y,center_z)
 
@@ -662,7 +666,7 @@ class Form_SetFormation(QFormLayout):
 			uavList[uav_id].SetDest(pose[0],pose[1],pose[2])
 			uavList[uav_id].SetDistanceToCenter( [center_x,center_y,center_z] , uavList[uav_id].GetDest())
 			uavList[uav_id].SetState(State.GO)
-	
+
 		self.CloseDialog()
 		
 	def CloseDialog(self):
@@ -902,11 +906,13 @@ class MapLayout(QHBoxLayout):
 		self.form = QFormLayout()
 		self.form.setAlignment(Qt.AlignCenter)
 
+
 		self.name = QLineEdit()
 		self.name.setText("formasyon " + str(len(formations.formations)))
 		self.name.setMaximumWidth(100)
 		self.name.setAlignment(Qt.AlignCenter)
 		self.form.addRow("Yükseklik",self.name )
+
 
 
 		self.height = QLineEdit()
@@ -1067,6 +1073,7 @@ class MapLayout(QHBoxLayout):
 		self.dialog.close()
 
 
+
 class TrajectoryMap(QHBoxLayout):
 	def __init__(self , dialog):
 		super().__init__()
@@ -1122,6 +1129,321 @@ class TrajectoryMap(QHBoxLayout):
 		self.form.addRow("İki grid arası uzaklık",self.uzaklık)
 
 
+
+
+
+		calculate = QPushButton("Hesapla")
+		self.form.addRow(calculate)
+		calculate.clicked.connect(self.calculate)
+
+		self.form.setVerticalSpacing(20)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submit)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+
+		self.form.addWidget(buttonbox)
+
+		box.setLayout(self.form)		
+		self.addWidget(box)
+
+
+	def calculate(self):
+		try :
+			float(self.uzaklık.text())
+			self.update_pos()
+		except:
+			self.uzaklık.setText("Lütfen Sayı Giriniz")
+		
+	
+	def update_pos(self):
+
+		for i in self.labels:
+			self.form.removeRow(i)
+
+		self.labels = []
+		#self.pos.sort()
+		self.calculatedposes = []
+		for i in self.pos:
+			x = (i[0] - 395)/40 * float(self.uzaklık.text())
+			y = -(i[1] - 395)/40 * float(self.uzaklık.text())
+			self.calculatedposes.append([x,y])
+			label = QLabel("Pos " + str(self.pos.index(i)) + " :     X  :" + str(x)  + "     Y :" + str(y))
+			self.form.addRow(label)
+			self.labels.append(label)
+	def submit(self):
+
+
+		group = int(self.group.text())
+		height = float(self.height.text())
+		speed = float(self.speed.text())
+		loop = self.loop.isChecked()
+
+		centers = []
+
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
+
+			for pose in self.calculatedposes:
+				centers.append([pose[0],pose[1],height])
+
+			for uav in groups.groups[group]:
+		
+				uavList[uav].CalculateTrajectory(centers,speed,loop)
+		
+			self.CloseDialog()
+		
+		else :
+			self.PopUp()
+			return
+		
+		
+	def CloseDialog(self):
+		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
+		
+class FormTakeOff(QFormLayout):
+	def __init__(self, dialog ):
+		super().__init__()
+
+
+		
+		self.dialog = dialog
+		self.takeoff_drones = []
+		self.land_drones = []
+
+
+		self.tabs = QTabWidget()
+		self.takeoff_tab = QWidget()
+		self.land_tab = QWidget()
+
+		self.tabs.addTab(self.takeoff_tab,"Kalkış")
+		self.tabs.addTab(self.land_tab,"İniş")
+
+		takeoff_layout = self.SetTakeOffTab()
+		land_layout = self.SetLandTab()
+
+		self.takeoff_tab.setLayout(takeoff_layout)
+		self.land_tab.setLayout(land_layout)
+
+		self.SetTakeOffTab()
+		self.SetLandTab()
+		
+
+		self.addWidget(self.tabs)
+
+
+	
+		
+	def SetLandTab(self):
+		land_tab_layout = QVBoxLayout()
+
+		buttonLayout = QHBoxLayout()
+
+		for uav in uavList:
+			if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
+				sbox = QVBoxLayout()
+				b = QRadioButton(str(uav.GetDroneNo()))
+				self.land_drones.append(b)
+				sbox.addWidget(b)
+				box = QGroupBox()
+				box.setMaximumHeight(80)
+				box.setLayout(sbox)
+				buttonLayout.addWidget(box)
+		land_tab_layout.addLayout(buttonLayout)
+
+		land_all = QPushButton("Hepsini İndir")
+		land_all.clicked.connect(self.submitLandAll)
+		land_tab_layout.addWidget(land_all)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submitLand)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+		land_tab_layout.addWidget(buttonbox)
+		
+		return land_tab_layout
+
+	def submitLandAll(self):
+		for uav in uavList:
+			if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
+				uav.SetState(State.CONNECTED)
+
+
+		self.CloseDialog()
+
+	def submitLand(self):
+
+		for uav in self.land_drones:
+			if uav.isChecked():
+				uavList[int(uav.text())].SetState(State.CONNECTED)
+			
+
+		self.CloseDialog()
+
+
+	def SetTakeOffTab(self):
+		takeoff_tab_layout = QVBoxLayout()
+
+		buttonLayout = QHBoxLayout()
+
+		for uav in uavList:
+			if uav.GetState() == State.CONNECTED:
+		
+				sbox = QVBoxLayout()
+				b = QRadioButton(str(uav.GetDroneNo()))
+				self.takeoff_drones.append(b)
+				sbox.addWidget(b)
+				box = QGroupBox()
+				box.setMaximumHeight(80)
+				box.setLayout(sbox)
+				buttonLayout.addWidget(box)
+		takeoff_tab_layout.addLayout(buttonLayout)
+
+		takeoff_all = QPushButton("Hepsini Kaldır")
+		takeoff_all.clicked.connect(self.submitTakeOffAll)
+		takeoff_tab_layout.addWidget(takeoff_all)
+
+		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+		buttonbox.accepted.connect(self.submitTakeOff)
+		buttonbox.rejected.connect(self.CloseDialog)
+
+		takeoff_tab_layout.addWidget(buttonbox)
+		
+		return takeoff_tab_layout
+				
+
+	def submitTakeOff(self):
+
+
+		for uav in self.takeoff_drones:
+			if uav.isChecked():
+				uavList[int(uav.text())].SetState(State.TAKEOFF)
+		
+
+
+		self.CloseDialog()
+
+	def submitTakeOffAll(self):
+
+		for uav in uavList:
+			if uav.GetState() == State.CONNECTED:
+				uav.SetState(State.TAKEOFF)
+
+		self.CloseDialog()
+		
+		
+	def CloseDialog(self):
+
+
+		self.dialog.close()
+
+	def CreateGroupsBox(self):
+		self.layout = QHBoxLayout()
+		
+		self.layout.setAlignment(Qt.AlignCenter)
+
+		self.bs = []
+
+		group = int(self.cb.currentText())
+
+		for i in groups.groups[group]:
+
+			sbox = QVBoxLayout()
+			b = QRadioButton(str(i))
+			self.bs.append(b)
+			sbox.addWidget(b)
+			box = QGroupBox()
+			box.setLayout(sbox)
+			self.layout.addWidget(box)
+		
+		self.removeRow(1)
+		self.insertRow(1,"Group :",self.layout)
+
+
+class TrajectoryMap(QHBoxLayout):
+	def __init__(self , dialog):
+		super().__init__()
+		Mbox = QGroupBox() 
+		Mvbox = QVBoxLayout()
+		self.dialog = dialog
+
+		self.pos = []
+		self.calculatedposes = []
+		self.labels = []
+		self.count = 0
+
+		map = MapTrajectory(self)
+		map.setMinimumWidth(800)
+		map.setMaximumHeight(800)
+		Mvbox.addWidget(map)
+		Mbox.setLayout(Mvbox)
+		self.addWidget(Mbox)
+
+		box = QGroupBox()
+		self.form = QFormLayout()
+		self.form.setAlignment(Qt.AlignCenter)
+
+
+
+
+		
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] , ["İHA Ayırma / Ekleme" , 3, 0], ["Uçuş Planlaması Yap",3,1], ["Planlanan Uçuşa Başla",3,2]]
+
+		self.height = QLineEdit()
+		self.height.setText("1.0")
+		self.height.setMaximumWidth(100)
+		self.height.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Yükseklik",self.height )
+
+
+		self.group = QLineEdit()
+		self.group.setText("0")
+		self.group.setMaximumWidth(100)
+		self.group.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Grup",self.group )
+
+		self.speed = QLineEdit()
+		self.speed.setText("0.3")
+		self.speed.setMaximumWidth(100)
+		self.speed.setAlignment(Qt.AlignCenter)
+		self.form.addRow("Hız",self.speed )
+
+		self.loop = QRadioButton()
+		self.form.addRow("Döngü",self.loop)
+
+
+		self.uzaklık = QLineEdit()
+		self.uzaklık.setText("0.5")
+		self.uzaklık.setMaximumWidth(100)
+		self.uzaklık.setAlignment(Qt.AlignCenter)
+		self.form.addRow("İki grid arası uzaklık",self.uzaklık)
+
+		self.setVerticalSpacing(50)
+
+
+
+
+		self.buttons[0].clicked.connect(self.drone_connect)
+		self.buttons[1].clicked.connect(self.drone_dissconnect)
+		self.buttons[2].clicked.connect(self.DroneTakeOff)
+		self.buttons[3].clicked.connect(self.create_Formation)
+		self.buttons[4].clicked.connect(self.mission_SetFormation)
+		self.buttons[5].clicked.connect(self.mission_hareket)
+		self.buttons[6].clicked.connect(self.SetTrajectory)
+		
+		self.buttons[7].clicked.connect(self.mission_split)
+		self.buttons[8].clicked.connect(self.mission_assemble)
+
+	def DroneTakeOff(self):
+		dialog = QDialog()
+		form = FormTakeOff(dialog)
+		self.CreateDialog(form,dialog)
 
 
 
@@ -1908,6 +2230,7 @@ class Window(QWidget):
 
 		SaveFormations()
 		
+
 		curr = datetime.datetime.now()
 		idx = 0
 		os.mkdir(curr.strftime("logs/%d.%m.%Y-%H:%M:%S"))
