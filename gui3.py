@@ -533,7 +533,7 @@ class Form_Connect(QFormLayout  ):
 		
 class Form_SetFormation(QFormLayout):
 	def __init__(self,dialog,load = None):
-		print(load)
+
 		super().__init__()
 		self.setVerticalSpacing(40) 
 		self.dialog = dialog 
@@ -608,10 +608,12 @@ class Form_SetFormation(QFormLayout):
 		
 			#################################
 		else :
+
 			poses = formation_side
 			if len(poses) != len(group):
 				self.PopUp()
 				return
+		print("poses",poses)
 
 		
 		initial_cost = []
@@ -733,11 +735,13 @@ class Form_Split(QFormLayout):
 			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 			self.buttonbox.accepted.connect(self.submit)
 			self.buttonbox.rejected.connect(self.CloseDialog)
-			self.addWidget(self.buttonbox)
+		
 			self.CreateGroupsBox()
 
 		self.cb.currentTextChanged.connect(self.CreateGroupsBox)
 		self.addRow(QLabel("Group : "), self.cb)
+		if load is None:
+			self.addWidget(self.buttonbox)
 		
 
 		
@@ -819,11 +823,15 @@ class Form_Assemble(QFormLayout):
 			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 			self.buttonbox.accepted.connect(self.submit)
 			self.buttonbox.rejected.connect(self.CloseDialog)
-			self.addWidget(self.buttonbox)
+			
 
 
 		self.addRow("Eski Grup :" , self.first)
 		self.addRow("Yeni Grup :" ,self.second)
+		
+		if load is  None:
+			self.addWidget(self.buttonbox)
+
 
 		
 
@@ -953,9 +961,13 @@ class MapLayout(QHBoxLayout):
 			return
 
 		else:
-			formations.formations[self.name.text()] = self.calculatedposes
+			poses = []
+			for pose in self.calculatedposes:
+				poses.append([pose[0],pose[1],float(self.height.text())])
+
+			formations.formations[self.name.text()] = poses
 			self.PopUpSuccSave()
-			print(formations.formations)
+
 			return
 
 
@@ -1189,49 +1201,68 @@ class FormTakeOff(QFormLayout):
 		self.tabs.addTab(self.takeoff_tab,"Kalkış")
 		self.tabs.addTab(self.land_tab,"İniş")
 
-		takeoff_layout = self.SetTakeOffTab()
-		land_layout = self.SetLandTab()
+		takeoff_layout = self.SetTakeOffTab(load)
+		land_layout = self.SetLandTab(load)
 
 		self.takeoff_tab.setLayout(takeoff_layout)
 		self.land_tab.setLayout(land_layout)
 
-		self.SetTakeOffTab()
-		self.SetLandTab()
+
 		
 
 		self.addWidget(self.tabs)
+		
 
 
 	def GetParam(self):
-		return None
+		return True
 	
 		
-	def SetLandTab(self):
+	def SetLandTab(self , load):
 		land_tab_layout = QVBoxLayout()
 
 		buttonLayout = QHBoxLayout()
 
-		for uav in uavList:
-			if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
-				sbox = QVBoxLayout()
-				b = QRadioButton(str(uav.GetDroneNo()))
-				self.land_drones.append(b)
-				sbox.addWidget(b)
-				box = QGroupBox()
-				box.setMaximumHeight(80)
-				box.setLayout(sbox)
-				buttonLayout.addWidget(box)
+		if load is not None:
+			for uav in uavList:
+					sbox = QVBoxLayout()
+					b = QRadioButton(str(uav.GetDroneNo()))
+					self.land_drones.append(b)
+					sbox.addWidget(b)
+					box = QGroupBox()
+					box.setMaximumHeight(80)
+
+					box.setLayout(sbox)
+					buttonLayout.addWidget(box)
+
+			
+		else:
+
+			for uav in uavList:
+				if uav.GetState() == State.TAKEOFF or uav.GetState() == State.CIRCLE or uav.GetState() == State.TRAJECTORY or uav.GetState() == State.GO or uav.GetState() == State.HOVER :
+					sbox = QVBoxLayout()
+					b = QRadioButton(str(uav.GetDroneNo()))
+					self.land_drones.append(b)
+					sbox.addWidget(b)
+					box = QGroupBox()
+					box.setMaximumHeight(80)
+					box.setLayout(sbox)
+					buttonLayout.addWidget(box)
+
 		land_tab_layout.addLayout(buttonLayout)
 
 		land_all = QPushButton("Hepsini İndir")
 		land_all.clicked.connect(self.submitLandAll)
-		land_tab_layout.addWidget(land_all)
+		
+
+		
 
 		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 		buttonbox.accepted.connect(self.submitLand)
 		buttonbox.rejected.connect(self.CloseDialog)
-
-		land_tab_layout.addWidget(buttonbox)
+		if load is None:
+			land_tab_layout.addWidget(land_all)
+			land_tab_layout.addWidget(buttonbox)
 		
 		return land_tab_layout
 
@@ -1253,13 +1284,13 @@ class FormTakeOff(QFormLayout):
 		self.CloseDialog()
 
 
-	def SetTakeOffTab(self):
+	def SetTakeOffTab(self , load):
 		takeoff_tab_layout = QVBoxLayout()
 
 		buttonLayout = QHBoxLayout()
 
-		for uav in uavList:
-			if uav.GetState() == State.CONNECTED:
+		if load is not None:
+			for uav in uavList:
 		
 				sbox = QVBoxLayout()
 				b = QRadioButton(str(uav.GetDroneNo()))
@@ -1269,17 +1300,30 @@ class FormTakeOff(QFormLayout):
 				box.setMaximumHeight(80)
 				box.setLayout(sbox)
 				buttonLayout.addWidget(box)
+		else:
+			for uav in uavList:
+				if uav.GetState() == State.CONNECTED:
+			
+					sbox = QVBoxLayout()
+					b = QRadioButton(str(uav.GetDroneNo()))
+					self.takeoff_drones.append(b)
+					sbox.addWidget(b)
+					box = QGroupBox()
+					box.setMaximumHeight(80)
+					box.setLayout(sbox)
+					buttonLayout.addWidget(box)
 		takeoff_tab_layout.addLayout(buttonLayout)
 
 		takeoff_all = QPushButton("Hepsini Kaldır")
 		takeoff_all.clicked.connect(self.submitTakeOffAll)
-		takeoff_tab_layout.addWidget(takeoff_all)
+		
 
 		buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 		buttonbox.accepted.connect(self.submitTakeOff)
 		buttonbox.rejected.connect(self.CloseDialog)
-
-		takeoff_tab_layout.addWidget(buttonbox)
+		if load is None:
+			takeoff_tab_layout.addWidget(takeoff_all)
+			takeoff_tab_layout.addWidget(buttonbox)
 		
 		return takeoff_tab_layout
 				
@@ -1403,7 +1447,7 @@ class MissionPlanner(QHBoxLayout):
 		missionButtons.addWidget(close)
 
 	def takeoff_button_clicked(self):
-		takeoffLayout = FormTakeOff(self.dialog)
+		takeoffLayout = FormTakeOff(self.dialog,True)
 		takeoffLayout.setVerticalSpacing(10)
 
 
@@ -1417,17 +1461,29 @@ class MissionPlanner(QHBoxLayout):
 	def StartMission(self):
 		self.CloseDialog()
 		for mission in self.missions:
-			mission.submit()
+			if type(mission) == FormTakeOff:
+				mission.submitTakeOff()
+				mission.submitLand()
+			else:
+				mission.submit()
 
 
 
 	def LoadHelper(self,missions):
-
+	
 		for mission in missions:
 			if self.missions != []:
 				mission.insertRow(0,QHLine())
-			self.missionList.addRow(mission)
-			self.missions.append(mission)
+
+			type_of = type(mission)
+			params = mission.GetParam()
+			tmp = type_of(self.dialog,params)
+			tmp.setVerticalSpacing(10)
+
+
+			self.missionList.addRow(tmp)
+			self.missions.append(tmp)
+
 
 	def savePlanButtonClicked(self):
 		
