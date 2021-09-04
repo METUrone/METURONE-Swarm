@@ -7,33 +7,10 @@ import numpy as np
 import datetime
 import copy
 
-from mathutils.geometry import intersect_point_line
-from threading import Lock
-
 uavList = []
 MAX_SPEED = 0.15
 Max_Uav_Number = 10 # change
 #Max uav number : GUI için gerekli (table için)
-g_start_time = None
-prev_dest_trajectory = None
-time_lock = Lock()
-
-def SetStartTime(time, prev):
-	time_lock.acquire()
-	global g_start_time
-	global prev_dest_trajectory
-	if prev != prev_dest_trajectory:
-		g_start_time = time
-		prev_dest_trajectory = prev
-	time_lock.release()
-
-def ReadStartTime():
-	time_lock.acquire()
-	global g_start_time
-	result = g_start_time
-	time_lock.release()
-	return result
-
 
 class State(Enum):
 	NOT_CONNECTED = 0
@@ -86,7 +63,7 @@ class Uav():
 		self.trajectory_start_time = None
 		self.trajectory_start_pose = None
 		self.trajectory_end_pose = None
-		self.trajectory_correction_constant = 0.8
+		self.trajectory_correction_constant = 0.1
 
 		self.distance_to_center = 0
 
@@ -96,7 +73,7 @@ class Uav():
 		if len(centers) == 0:
 			return 
 		else :
-			self.trajectory_centers = copy.deepcopy(centers)
+			self.trajectory_centers = centers
 			self.trajectory_first = centers[0]
 			self.trajectory_speed = speed
 			self.trajectory_loop = loop
@@ -133,6 +110,7 @@ class Uav():
 
 	def StopCircle(self):
 		self.dest = self.GetPose()
+		print("Stop Circle")
 		self.SetState(State.HOVER)
 		
 	def GetDroneNo(self):
@@ -275,7 +253,7 @@ class Uav():
 		
 		self.circle_center = uav.GetPose()
 		pose = self.GetDest()
-		self.circle_radius = self.hover_circle + 0.1
+		self.circle_radius = self.hover_circle
 		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1]) + 0.1
 		speed = self.CalculateCircleSpeed()[:2]
 
@@ -284,6 +262,7 @@ class Uav():
 		speed[0] *= 0.5
 		speed[1] *= 0.5
 
+		print("circle " , speed)
 		return [speed[0],speed[1],0.0]
 
 	
@@ -306,14 +285,6 @@ class Uav():
 				if distance < self.hover_circle:
 					if checkCollision( start_point , end_point , circle_center, self.collision_circle):
 						return self.CalculateGoSpeedCircle(uav)
-			# Change Maybe add another circles
-			if uav.GetState() == State.GO:
-				distance = self.length_to_uav(uav)
-				if distance < 0.3:
-					clip_speed = 0.1
-				elif distance < 0.4:
-					clip_speed = 0.2
-
 
 			
 
@@ -329,61 +300,41 @@ class Uav():
 		
 		speed = normalize([speed_x,speed_y,speed_z])
 	
-		speed[0]*= clip_speed
-		speed[1]*= clip_speed
-		speed[2]*= clip_speed
+		speed[0]*= self.speed_clip_go
+		speed[1]*= self.speed_clip_go
+		speed[2]*= self.speed_clip_go
 
+		print("normal",speed)
 
 
 		return speed
-	def EndTrajectory(self , grup):
-		center = self.trajectory_centers[-1]
-		
-		for uav in uavList:
-
-			if uav.info["Grup"] == grup and uav.GetState() == State.TRAJECTORY:
-				pose = np.array(center) + uav.distance_to_center
-				uav.SetDest(pose[0] , pose[1] ,center[2])
-				uav.SetState(State.HOVER)
-				print(uav.GetDest())
 
 	def CalculateTrajectorySpeed(self):
 
 
 		curr_pose = np.array(self.GetPose())
 		destinated_pose = np.array(self.trajectory_centers[0]) + self.distance_to_center
-
 		result = None
 
-
+		print(np.linalg.norm(curr_pose-destinated_pose))
+		print(self.trajectory_centers[0])
 		if np.linalg.norm(curr_pose-destinated_pose) > 0.2:
 			distance_between_centers = np.array(self.trajectory_centers[0]) - np.array(self.GetPose()) + self.distance_to_center
 			length = np.linalg.norm(distance_between_centers)
 			result = [self.trajectory_speed * distance_between_centers[0] / length, self.trajectory_speed * distance_between_centers[1] / length, (self.dest[2] - self.info["Z"]) * self.speed_constant_trajectory]
 		else:
-			self.trajectory_start_pose = destinated_pose
-
-			
-			SetStartTime(datetime.datetime.now(), self.trajectory_centers[0])
-			
-			self.trajectory_start_time = ReadStartTime()
 			c = self.trajectory_centers.pop(0)
 			if self.trajectory_centers[0] == self.trajectory_first and self.trajectory_loop == False:
-				self.EndTrajectory(self.info["Grup"])
+				pose = self.GetPose()
+				self.SetDest(pose[0],pose[1],pose[2])
+				self.SetState(State.GO)
 			self.trajectory_centers.append(c)
-			self.trajectory_end_pose = np.array(self.trajectory_centers[0]) + self.distance_to_center
 			return self.CalculateTrajectorySpeed()
 
 
-		#distance_to_trajectory_line = np.cross(self.trajectory_end_pose-self.trajectory_start_pose,curr_pose-self.trajectory_start_pose)/np.linalg.norm(self.trajectory_end_pose-self.trajectory_start_pose)
-		#distance_to_trajectory_line *= self.trajectory_correction_constant
-		
-		#closest_point = np.array(intersect_point_line(curr_pose,self.trajectory_start_pose,self.trajectory_end_pose)[0])
-		closest_point = np.array(self.trajectory_start_pose) + np.array(result) * (datetime.datetime.now() - self.trajectory_start_time).total_seconds()
-		#print(closest_point, curr_pose,(datetime.datetime.now() - self.trajectory_start_time).total_seconds())
-		closest_vector = closest_point - curr_pose
-		closest_vector *= self.trajectory_correction_constant
-		return np.array(result) + np.array([closest_vector[0],closest_vector[1],0])
+		distance_to_trajectory_line = np.cross(self.trajectory_end_pose-self.trajectory_start_pose,curr_pose-self.trajectory_start_pose)/np.linalg.norm(self.trajectory_end_pose-self.trajectory_start_pose)
+		distance_to_trajectory_line *= self.trajectory_correction_constant
+		return np.array(result)+distance_to_trajectory_line
 
 
 
@@ -407,7 +358,10 @@ class Uav():
 
 	def CalculateCollisionSpeed(self):
 		return self.HoverCollision()
+		
 
+	def GoCollision(self):
+		return [0,0,0]
 
 	def HoverCollision(self):
 		speed_x = 0

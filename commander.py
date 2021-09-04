@@ -25,7 +25,7 @@ import subprocess, sys
 # Change uris and sequences according to your setup
 logging.basicConfig(level=logging.ERROR)
 
-deques = [collections.deque(maxlen=1)] * 5
+deques = [collections.deque(maxlen=1)] * 4
 logs = [""]*Max_Uav_Number
 
 currentMissionList = {} # This dict. will be populated by MissionPlanner Form
@@ -45,8 +45,8 @@ def Pos_thread(sequence):
 
 
 			lst = line.split("/")[1:]
-			uavList[int(lst[0]) - 1].info["X"] = -float(lst[1])
-			uavList[int(lst[0]) - 1].info["Y"] = -float(lst[2])
+			uavList[int(lst[0]) - 1].info["X"] = -float(lst[2])
+			uavList[int(lst[0]) - 1].info["Y"] = float(lst[1])
 			uavList[int(lst[0]) - 1].info["Z"] = float(lst[3])
 			#print("pose thread time is",datetime.datetime.now() - x, line)
 			#print(line)
