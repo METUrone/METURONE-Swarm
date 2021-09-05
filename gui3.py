@@ -571,6 +571,13 @@ class Form_SetFormation(QFormLayout):
 		buttonbox.rejected.connect(self.CloseDialog)
 		self.addWidget(buttonbox)
 
+	def ReturnInfo(self):
+		toReturn = "Formasyona girecek grup: " + str(self.group)
+		toReturn += "\nFormasyon tipi: " + str(self.cb.currentText())
+		toReturn += "\nİHA'lar arasındaki mesafe: " + str(self.distance)
+		toReturn += "\nMerkez noktası: " + str(self.positionform)
+		return toReturn
+
 	def submit(self):
 
 		group = groups.groups[int(self.group.text())]
@@ -640,6 +647,11 @@ class Form_Hareket(QFormLayout):
 		buttonbox.accepted.connect(self.submit)
 		buttonbox.rejected.connect(self.CloseDialog)
 		self.addWidget(buttonbox)
+	
+	def ReturnInfo(self):
+		toReturn = "Hareket edecek grup: " + str(self.group)
+		toReturn += "Hedef noktası: " + str(self.positionform)
+		return toReturn
 
 	def submit(self):
 
@@ -705,6 +717,10 @@ class Form_Split(QFormLayout):
 		buttonbox.accepted.connect(self.submit)
 		buttonbox.rejected.connect(self.CloseDialog)
 		self.addWidget(buttonbox)
+
+	def ReturnInfo(self):
+		toReturn = "Ayrılacak grup: " + str(self.cb.currentText())
+		return toReturn
 
 	def submit(self):
 
@@ -777,6 +793,11 @@ class Form_Assemble(QFormLayout):
 		buttonbox.accepted.connect(self.submit)
 		buttonbox.rejected.connect(self.CloseDialog)
 		self.addWidget(buttonbox)
+
+	def ReturnInfo(self):
+		toReturn = "Birleşecek ilk grup: " + str(self.first.currentText())
+		toReturn += "\nBirleşecek ikinci grup: " + str(self.second.currentText())
+		return toReturn
 
 	def submit(self):
 
@@ -1096,6 +1117,10 @@ class FormTakeOff(QFormLayout):
 
 		self.addWidget(self.tabs)
 
+	def ReturnInfo(self):
+		toReturn = "Kalkışa geçen İHA'lar: " + str(self.takeoff_drones)
+		toReturn += "\nİnişe geçen İHA'lar: " + str(self.land_drones)
+		return toReturn
 
 	
 		
