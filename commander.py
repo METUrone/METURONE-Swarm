@@ -25,7 +25,7 @@ import subprocess, sys
 # Change uris and sequences according to your setup
 logging.basicConfig(level=logging.ERROR)
 
-deques = [collections.deque(maxlen=1)] * 4
+deques = [collections.deque(maxlen=1)] * 5
 logs = [""]*Max_Uav_Number
 
 def Pos_thread(sequence):
@@ -159,8 +159,12 @@ def run_sequence(scf,sequence):
 				cf.commander.send_velocity_world_setpoint(collision_speed[0] + speed[0], collision_speed[1] + speed[1], speed[2] + collision_speed[2], 0)
 				pass
 		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
+
 	except Exception as e:
 		print(e)
+		print("asd")
+		uavList[DroneID].SetState(State.NOT_CONNECTED)
+		groups.RemoveUav(uavList[DroneID].info["Grup"] , DroneID)
 		traceback.print_exc()		
 	
 

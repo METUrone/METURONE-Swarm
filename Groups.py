@@ -29,6 +29,10 @@ class Groups:
 
         self.formation_info[group] = [formation,center,x,y,z]
 
+    def RemoveUav(self,group,uav):
+        self.groups[group].remove(uav)
+
+
     def DelFormationInfo(self,group):
         del self.formation_info[grup] 
 
