@@ -1612,6 +1612,8 @@ class MissionPlanner(QHBoxLayout):
 			tmp = type_of(self.dialog,params)
 			tmp.setVerticalSpacing(10)
 
+			tmp.insertRow(0,QHLine())
+
 
 
 			self.missionList.addRow(tmp)
@@ -2045,14 +2047,39 @@ def SaveTrajectories():
 	pickle.dump(formations.trajectories, trajectory_save_file)
 	trajectory_save_file.close()
 def SavePlannedMissions():
+	save_tmp ={}
+	for key in formations.planned_missions.keys():
+		missions = []
+		for mission in formations.planned_missions[key]:
+			missions.append([ type(mission) ,mission.GetParam()])
+		save_tmp[key] = missions
 	planned_missions_save_file = open("config/plannedmissions.pkl" , "wb")
-	pickle.dump(formations.planned_missions,planned_missions_save_file)
+	pickle.dump(save_tmp,planned_missions_save_file)
 	planned_missions_save_file.close()
+def LoadPlannedMissions():
+	try:
+		tmp_file = open("config/plannedmissions.pkl" , "rb")
+		tmp_save = pickle.load(tmp_file)
+		formations.planned_missions = {}
+		for key in tmp_save.keys():
+			missions = []
+			for mission in tmp_save[key]:
+				missions.append(mission[0](None,mission[1:][0]))
+			formations.planned_missions[key] = missions
+			
+		print("planned missions" , formations.planned_missions)
+		tmp_file.close()
+	except:
+		formations.planned_missions = {}
 
 
 
 class Window(QWidget):
+	
 	def __init__(self):
+
+		LoadPlannedMissions()
+		
 		super().__init__()
 		self.title = "PyQt5 Frame"
 		self.resize(1920,1080)

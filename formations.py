@@ -17,14 +17,9 @@ class Formations:
 		except:
 			self.trajectories = {}
 
-		try :
-			tmp_file = open("config/plannedmissions.pkl" , "rb")
-			self.planned_missions = pickle.load(tmp_file)
-			tmp_file.close()
-		except:
-			self.planned_missions = {}
+		
 
-		print(self.trajectories)
+
 	def AddFormation(self , name , dronePoses) :
 		self.formations[name] = dronePoses
 formations = Formations()

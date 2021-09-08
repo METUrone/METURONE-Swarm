@@ -7,7 +7,7 @@ import numpy as np
 import datetime
 import copy
 
-from mathutils.geometry import intersect_point_line
+#from mathutils.geometry import intersect_point_line
 from threading import Lock
 
 uavList = []
