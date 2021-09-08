@@ -81,7 +81,6 @@ class Formation:
 		self.ihaSayisi = ihaSayisi
 		self.ihaArasiUzaklik = ihaArasiUzaklik
 		self.height = center.z
-		print("Cokgen kenar: ", kenar);
 		# self.initialPosition
 		if (self.sides != []):
 			self.sides = []
