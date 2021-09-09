@@ -78,7 +78,11 @@ class Uav():
 		self.circle_center = None
 		self.circle_radius = None
 		self.circle_radian = None
-		self.circle_timer = None
+
+		self.circle_with_param = False
+		self.circle_param_deg = None
+		self.circle_param_time = None
+		self.circle_param_duration = None
 
 		self.trajectory_centers =[]
 		self.trajectory_loop = False
@@ -123,14 +127,25 @@ class Uav():
 	def DistanceToCenter(self,center):
 		return math.sqrt( pow(self.dest[0]-center[0],2) + pow(self.dest[1]-center[1],2) )
 
-	def StartCircle(self,center):
+	def StartCircle(self,center, param = None):
+		if param is None:
+			self.circle_center = center
+			pose = self.GetDest()
+			self.circle_radius = np.linalg.norm( np.array(pose) - np.array(self.circle_center) )
+			self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1])
+			self.circle_starting_radian = self.circle_radian
 
-		self.circle_center = center
-		pose = self.GetDest()
-		self.circle_radius = np.linalg.norm( np.array(pose) - np.array(self.circle_center) )
-		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1])
+			self.SetState(State.CIRCLE)
+		
+		else:
+			alpha = param[0]
+			sure = param[1]
 
-		self.SetState(State.CIRCLE)
+			self.circle_with_param = True
+			self.circle_param_deg = alpha
+			self.circle_param_time = datetime.datetime.now()
+			self.circle_param_duration = sure
+			self.StartCircle(center) # same other than the extra parameters
 
 	def StopCircle(self):
 		self.dest = self.GetPose()
@@ -240,18 +255,49 @@ class Uav():
 
 	def CalculateCircleSpeed(self):
 
+		if self.circle_with_param == False:
+			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
+			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
+			self.circle_radian += 0.005
 
-		x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
-		y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
-		self.circle_radian += 0.005
-
-		speed_x = ((x - self.info["X"]) ) 
-		speed_y = ((y - self.info["Y"]) ) 
-		speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
+			speed_x = ((x - self.info["X"]) ) 
+			speed_y = ((y - self.info["Y"]) ) 
+			speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
 
 
+			
+			return [speed_x,speed_y,speed_z]
 		
-		return [speed_x,speed_y,speed_z]
+		else:
+			alpha = self.circle_param_deg
+			sure = self.circle_param_duration
+			starting_time = self.circle_param_time
+			curr_time = datetime.datetime.now()
+			passed_time = (curr_time - starting_time).total_seconds()
+			passed_deg = math.degrees(self.circle_starting_radian) - alpha
+			percentage_time = passed_time / sure
+
+			epsilon = 1
+			if alpha <= (passed_deg + 1):
+				# COMPLETED
+				self.circle_with_param = False
+				self.StopCircle() # TODO! NEED TO BE TESTED
+
+			wanted_deg = alpha * percentage_time
+			self.circle_radian += math.radians(wanted_deg - passed_deg)
+			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
+			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
+			speed_x = ((x - self.info["X"]) ) 
+			speed_y = ((y - self.info["Y"]) ) 
+			speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
+
+
+			
+			return [speed_x,speed_y,speed_z]
+		
+
+
+
 
 	# Be careful! No clip
 	def CalculateHoverSpeed(self):
