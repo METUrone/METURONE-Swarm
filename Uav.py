@@ -46,7 +46,9 @@ class State(Enum):
 	HOVER = 32
 	LOW_BATTERY = 64
 
-	
+class CircleState(Enum):
+	A = 0
+	B = 1
 
 class Uav():
 	def __init__(self,DroneId , StartPos = [0,0,1]):
@@ -83,6 +85,10 @@ class Uav():
 		self.circle_param_deg = None
 		self.circle_param_time = None
 		self.circle_param_duration = None
+		self.circle_param_starting_time = None
+		self.circle_param_total_deg = None
+		self.circle_a_b = None
+		self.circle_total_angular_displacement = None
 
 		self.trajectory_centers =[]
 		self.trajectory_loop = False
@@ -91,7 +97,7 @@ class Uav():
 		self.trajectory_start_time = None
 		self.trajectory_start_pose = None
 		self.trajectory_end_pose = None
-		self.trajectory_correction_constant = 0.4
+		self.trajectory_correction_constant = 0.8
 
 		self.distance_to_center = 0
 
@@ -144,7 +150,11 @@ class Uav():
 			self.circle_with_param = True
 			self.circle_param_deg = alpha
 			self.circle_param_time = datetime.datetime.now()
+			self.circle_param_starting_time = self.circle_param_time
 			self.circle_param_duration = sure
+			self.circle_param_total_deg = 0.
+			self.circle_a_b = CircleState.A
+			self.circle_total_angular_displacement = 0
 			self.StartCircle(center) # same other than the extra parameters
 
 	def StopCircle(self):
@@ -271,20 +281,36 @@ class Uav():
 		else:
 			alpha = self.circle_param_deg
 			sure = self.circle_param_duration
-			starting_time = self.circle_param_time
 			curr_time = datetime.datetime.now()
-			passed_time = (curr_time - starting_time).total_seconds()
-			passed_deg = math.degrees(self.circle_starting_radian) - alpha
-			percentage_time = passed_time / sure
+			duration = curr_time - self.circle_param_time
+			self.circle_param_time = curr_time
+			total_duration = curr_time - self.circle_param_starting_time
+			degsec = float(alpha) / sure * duration.total_seconds()
+			pose = self.GetPose()
+			real_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1])
+			angle = 180 - abs(abs(math.degrees(self.circle_starting_radian) - math.degrees(real_radian)) - 180)
+			print(total_duration.total_seconds(), angle)
+			
+			if self.circle_a_b == CircleState.A:
+				if angle > 178:
+					self.circle_total_angular_displacement += 178
+					self.circle_a_b = CircleState.B
+				else:
+					if (self.circle_total_angular_displacement + angle) > alpha:
+						self.StopCircle()
+						return [0,0,0]
 
-			epsilon = 1
-			if alpha <= (passed_deg + 1):
-				# COMPLETED
-				self.circle_with_param = False
-				self.StopCircle() # TODO! NEED TO BE TESTED
+			else:
+				if angle < 2:
+					self.circle_total_angular_displacement += 178
+					self.circle_a_b = CircleState.A
+				else:
+					if (self.circle_total_angular_displacement + (180 - angle)) > alpha:
+						self.StopCircle()
+						return [0,0,0]
+		
+			self.circle_radian += math.radians(degsec)
 
-			wanted_deg = alpha * percentage_time
-			self.circle_radian += math.radians(wanted_deg - passed_deg)
 			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
 			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
 			speed_x = ((x - self.info["X"]) ) 
@@ -292,8 +318,8 @@ class Uav():
 			speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
 
 
-			
-			return [speed_x,speed_y,speed_z]
+			print("duration: {}".format(duration))
+			return np.array([speed_x,speed_y,speed_z])
 		
 
 
