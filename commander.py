@@ -40,8 +40,8 @@ def Pos_thread(sequence):
 
 			lst = line.split("/")[1:]
 			uavList[int(lst[0]) - 1].info["X"] = -float(lst[1])
-			uavList[int(lst[0]) - 1].info["Y"] = -float(lst[2])
-			uavList[int(lst[0]) - 1].info["Z"] = float(lst[3])
+			uavList[int(lst[0]) - 1].info["Y"] = float(lst[2])
+			uavList[int(lst[0]) - 1].info["Z"] = -float(lst[3])
 			#print("pose thread time is",datetime.datetime.now() - x, line)
 			#print(line)
 

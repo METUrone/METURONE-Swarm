@@ -223,7 +223,7 @@ class GroupInfos(QTableWidget):
 		
 		center = groups.formation_info[group]
 		for tmp_group in groups.groups[group]:
-			uavList[tmp_group].StartCircle([center[2],center[3],center[4]]  )
+			uavList[tmp_group].StartCircle([center[2],center[3],center[4]])
 		pass # TO-DO
 
 	def StopCircle(self,group):
@@ -432,7 +432,25 @@ class PositionForm(QHBoxLayout):
 
 		self.setSpacing(30)
 
+class RotationForm(QHBoxLayout):
+	def __init__(self):
+		super().__init__()
+		
+		alpha = QFormLayout()
+		self.alphaPos = QLineEdit()
+		self.alphaPos.setText("0")
+		alpha.addRow("alpha :", self.alphaPos)
 
+
+		sure = QFormLayout()
+		self.surePos = QLineEdit()
+		self.surePos.setText("0")
+		sure.addRow("Süre : ",self.surePos)
+
+		self.addLayout(alpha)
+		self.addLayout(sure)
+
+		self.setSpacing(30)
 
 		
 
@@ -674,6 +692,73 @@ class Form_SetFormation(QFormLayout):
 		self.dialog.close()
 
 
+class Form_Rotasyon(QFormLayout):
+	def __init__(self,dialog,load = None):
+
+		super().__init__()
+		self.setVerticalSpacing(40) 
+		self.dialog = dialog 
+		self.rotationform = RotationForm()
+		self.group = QLineEdit()
+		
+		if load is not None:
+			self.rotationform.alphaPos.setText(load[0][0])
+			self.rotationform.surePos.setText(load[0][1])
+
+
+		else:
+			
+			self.group.setText("0")
+			#submit ve close buttonu
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+
+
+
+		self.addRow("Açı(derece), süre(saniye) : ",self.rotationform)
+		self.addRow(QLabel("Grup : " ) , self.group)
+		if load is None:
+			self.addWidget(self.buttonbox)
+		
+	def ReturnInfo(self):
+
+		return "Grup : " + self.group.text() + " Hareket" 
+	def GetParam(self):
+		return [[self.rotationform.alphaPos.text(),self.rotationform.surePos.text()] , self.group.text()]
+
+	def submit(self):
+
+		
+		alpha = float(self.rotationform.alphaPos.text())
+		sure = float(self.rotationform.surePos.text())
+		group = int(self.group.text())
+
+		
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
+			center = groups.formation_info[group]
+			for tmp_group in groups.groups[group]:
+				uavList[tmp_group].StartCircle([center[2], center[3], center[4]],[alpha, sure])
+				
+		else:
+			self.PopUp()
+			return
+			
+
+
+		self.CloseDialog()
+		
+		
+	def CloseDialog(self):
+		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
+
+
 class Form_Hareket(QFormLayout):
 	def __init__(self,dialog,load = None):
 
@@ -744,6 +829,7 @@ class Form_Hareket(QFormLayout):
 		msg.setWindowTitle("Dikkat")
 		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
 		msg.exec_()
+
 
 class WaitScreen(QHBoxLayout):
 	def __init__(self,missions,dialog):
@@ -1923,7 +2009,7 @@ class buttons(QGridLayout):
 		super().__init__()
 
 		
-		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0] ]
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0], ["Rotasyon", 3, 1] ]
 
 		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
@@ -1956,6 +2042,8 @@ class buttons(QGridLayout):
 		self.buttons[8].clicked.connect(self.mission_assemble)
 
 		self.buttons[9].clicked.connect(self.mission_plan)
+
+		self.buttons[10].clicked.connect(self.mission_rotasyon)
 
 
 	def DroneTakeOff(self):
@@ -1998,6 +2086,11 @@ class buttons(QGridLayout):
 		dialog = QDialog()
 		form = Form_SetFormation(dialog)
 		self.CreateDialog(form,dialog)
+
+	def mission_rotasyon(self):
+		dialog = QDialog()
+		form = Form_Rotasyon(dialog)
+		self.CreateDialog(form, dialog)
 	
 	def mission_hareket(self):
 		dialog = QDialog()
