@@ -18,7 +18,6 @@ from Utils import *
 
 import pickle
 
-
 class Map(QWidget):
     def __init__(self,form,size = 800):
         super().__init__()
@@ -343,9 +342,9 @@ class Table(QTableWidget):
 		super().__init__()
 		
 		self.setStyleSheet("background-color : lightblue")
-		self.setRowCount(Max_Uav_Number)
+		self.setRowCount(Max_Uav_Number + 1)
 		self.setEditTriggers(QAbstractItemView.NoEditTriggers )
-		self.setColumnCount(8)
+		self.setColumnCount(len(uavList[0].info))
 		self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
 
@@ -439,13 +438,13 @@ class RotationForm(QHBoxLayout):
 		alpha = QFormLayout()
 		self.alphaPos = QLineEdit()
 		self.alphaPos.setText("0")
-		alpha.addRow("alpha :", self.alphaPos)
+		alpha.addRow("Alpha (Açı) :", self.alphaPos)
 
 
 		sure = QFormLayout()
 		self.surePos = QLineEdit()
 		self.surePos.setText("0")
-		sure.addRow("Süre : ",self.surePos)
+		sure.addRow("Süre (Saniye) : ",self.surePos)
 
 		self.addLayout(alpha)
 		self.addLayout(sure)
@@ -700,10 +699,12 @@ class Form_Rotasyon(QFormLayout):
 		self.dialog = dialog 
 		self.rotationform = RotationForm()
 		self.group = QLineEdit()
-		
+		self.rotation_side = QRadioButton()
 		if load is not None:
 			self.rotationform.alphaPos.setText(load[0][0])
 			self.rotationform.surePos.setText(load[0][1])
+			self.group.setText(load[1])
+			self.rotation_side.setChecked(load[2])
 
 
 		else:
@@ -716,7 +717,9 @@ class Form_Rotasyon(QFormLayout):
 
 
 
-		self.addRow("Açı(derece), süre(saniye) : ",self.rotationform)
+		self.addRow( self.rotationform)
+		self.addRow("Rotasyon Yönü (Saat Yönü) ", self.rotation_side)
+		
 		self.addRow(QLabel("Grup : " ) , self.group)
 		if load is None:
 			self.addWidget(self.buttonbox)
@@ -725,7 +728,7 @@ class Form_Rotasyon(QFormLayout):
 
 		return "Grup : " + self.group.text() + " Hareket" 
 	def GetParam(self):
-		return [[self.rotationform.alphaPos.text(),self.rotationform.surePos.text()] , self.group.text()]
+		return [[self.rotationform.alphaPos.text(),self.rotationform.surePos.text()] , self.group.text(),self.rotation_side.isChecked()]
 
 	def submit(self):
 
@@ -739,6 +742,73 @@ class Form_Rotasyon(QFormLayout):
 			center = groups.formation_info[group]
 			for tmp_group in groups.groups[group]:
 				uavList[tmp_group].StartCircle([center[2], center[3], center[4]],[alpha, sure])
+				
+		else:
+			self.PopUp()
+			return
+			
+
+
+		self.CloseDialog()
+		
+		
+	def CloseDialog(self):
+		self.dialog.close()
+
+	def PopUp(self):
+		msg = QMessageBox()
+		msg.setWindowTitle("Dikkat")
+		msg.setText( "Grup formasyon oluşturmadı veya öyle bir grup yok." )
+		msg.exec_()
+
+class Form_Rotasyon_Simple(QFormLayout):
+	def __init__(self,dialog,load = None):
+
+		super().__init__()
+		self.setVerticalSpacing(40) 
+		self.dialog = dialog 
+		self.rotation_angle = QLineEdit()
+		self.group = QLineEdit()
+		self.rotation_side = QRadioButton()
+		if load is not None:
+			self.rotation_angle.setText(load[0])
+			self.group.setText(load[1])
+			self.rotation_side.setChecked(load[2])
+
+
+		else:
+			
+			self.group.setText("0")
+			self.buttonbox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+			self.buttonbox.accepted.connect(self.submit)
+			self.buttonbox.rejected.connect(self.CloseDialog)
+
+
+
+		self.addRow("Açı (Derece)" ,self.rotation_angle)
+		self.addRow("Rotasyon Yönü (Saat Yönü) ", self.rotation_side)
+		
+		self.addRow(QLabel("Grup : " ) , self.group)
+		if load is None:
+			self.addWidget(self.buttonbox)
+		
+	def ReturnInfo(self):
+
+		return "Grup : " + self.group.text() + " Hareket" 
+	def GetParam(self):
+		return [self.rotation_angle.text(), self.group.text(),self.rotation_side.isChecked()]
+
+	def submit(self):
+
+		
+		alpha = abs(float(self.rotation_angle.text())) * math.pi / 180
+		group = int(self.group.text())
+
+		
+		if group in groups.formation_info and groups.formation_info[group][0] != "Yok":
+			center = groups.formation_info[group]
+			for tmp_group in groups.groups[group]:
+				uavList[tmp_group].StartCircleSimple([center[2], center[3], center[4]],alpha , self.rotation_side.isChecked())
 				
 		else:
 			self.PopUp()
@@ -902,9 +972,11 @@ class Form_Split(QFormLayout):
 		
 
 		new_group = []
-
+		
 		for i in range(len(groups.groups[group])):
+
 			if self.bs[i].isChecked():
+				
 				new_group.append(groups.groups[group][i])
 
 		
@@ -922,11 +994,19 @@ class Form_Split(QFormLayout):
 		self.dialog.close()
 	############################### İlerde Kesin Değiştir
 	def CreateGroupsBox(self ):
+
+		try :
+			self.removeRow(self.layout)
+		except:
+			pass
+
 		self.layout = QHBoxLayout()
 		
 		self.layout.setAlignment(Qt.AlignCenter)
 
 		self.bs = []
+
+	
 
 		if self.load is None:
 			group = int(self.cb.currentText())
@@ -941,6 +1021,7 @@ class Form_Split(QFormLayout):
 				box = QGroupBox()
 				box.setLayout(sbox)
 				self.layout.addWidget(box)
+			self.insertRow(1,"Group :",self.layout)
 		else:
 			for uav in range(Max_Uav_Number):
 
@@ -952,10 +1033,9 @@ class Form_Split(QFormLayout):
 				box = QGroupBox()
 				box.setLayout(sbox)
 				self.layout.addWidget(box)
-
+			self.insertRow(2,"Group :",self.layout)
 		
-		self.removeRow(1)
-		self.insertRow(1,"Group :",self.layout)
+		
 
 class Form_Assemble(QFormLayout):
 	def __init__(self, dialog , load = None):
@@ -1620,7 +1700,7 @@ class MissionPlanner(QHBoxLayout):
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
 		buttonHover = "QPushButton::hover{background-color : grey}"
 
-		mission_buttons_names = ["Planı Kaydet" , "Planı Yükle" , "Bekleme Süresi Ekle","Kalkış/İnis" , "Formasyon Oluştur/Değiştir","Sürüyü Hareket Ettir","Sürüyü Ayır","Sürüleri Birleştir","Trajektöri Ekle" , "Sonuncuyu Sil","Planı Başlat" ]
+		mission_buttons_names = ["Planı Kaydet" , "Planı Yükle" , "Bekleme Süresi Ekle","Kalkış/İnis" , "Formasyon Oluştur/Değiştir","Sürüyü Hareket Ettir","Sürüyü Ayır","Sürüleri Birleştir","Trajektöri Ekle" , "Rotasyon","Rotasyon (Basit)","Sonuncuyu Sil","Planı Başlat" ]
 		mission_buttons = []
 		button_style = buttonIdle + buttonPressed + buttonHover
 		button_style_close = buttonIdle_close + buttonPressed + buttonHover
@@ -1644,8 +1724,10 @@ class MissionPlanner(QHBoxLayout):
 		mission_buttons[6].clicked.connect(self.divide)
 		mission_buttons[7].clicked.connect(self.combine)
 		mission_buttons[8].clicked.connect(self.TrajectoryButtonClicked)
-		mission_buttons[9].clicked.connect(self.removeItem)
-		mission_buttons[10].clicked.connect(self.StartMission)
+		mission_buttons[9].clicked.connect(self.Rotation)
+		mission_buttons[10].clicked.connect(self.RotationSimple)
+		mission_buttons[11].clicked.connect(self.removeItem)
+		mission_buttons[12].clicked.connect(self.StartMission)
 
 		
 
@@ -1654,6 +1736,27 @@ class MissionPlanner(QHBoxLayout):
 		close.clicked.connect(self.CloseDialog)
 		close.setStyleSheet(button_style_close)
 		missionButtons.addWidget(close)
+
+	def Rotation(self):
+		rotationlayout = Form_Rotasyon(self.dialog)
+		rotationlayout.setVerticalSpacing(10)
+		rotationlayout.removeWidget(rotationlayout.buttonbox)
+		if self.missions != []:
+			rotationlayout.insertRow(0,QHLine())
+		
+		self.missionList.addRow(rotationlayout)
+		self.missions.append(rotationlayout)
+
+	def RotationSimple(self):
+		rotationlayout = Form_Rotasyon_Simple(self.dialog)
+		rotationlayout.setVerticalSpacing(10)
+		rotationlayout.removeWidget(rotationlayout.buttonbox)
+		if self.missions != []:
+			rotationlayout.insertRow(0,QHLine())
+		
+		self.missionList.addRow(rotationlayout)
+		self.missions.append(rotationlayout)
+
 
 	def takeoff_button_clicked(self):
 		takeoffLayout = FormTakeOff(self.dialog,True)
@@ -1669,18 +1772,12 @@ class MissionPlanner(QHBoxLayout):
 
 	def StartMission(self):
 		self.CloseDialog()
-		"""info = []
-								for mission in self.missions:
-									info.append(mission.ReturnInfo())
-						
-								dialog = QDialog()
-								wait_screen = WaitScreen(info,dialog)
-								dialog.setWindowModality(Qt.ApplicationModal)
-								dialog.setLayout(wait_screen)
-								dialog.exec_()"""
+		w.setStyleSheet("background-color : grey")
+		App.processEvents()
 		for mission in self.missions:
 			mission.submit()
 			#wait_screen.GoNext()
+		w.setStyleSheet('background-color:#393E46')
 		self.CloseDialog()
 
 
@@ -1726,6 +1823,7 @@ class MissionPlanner(QHBoxLayout):
 			formations.planned_missions[self.missionName.text()] = missions_tmp
 			self.removeItemAll()
 			self.PopUpSuccSave()
+		
 			return
 
 		
@@ -1833,10 +1931,10 @@ class MissionPlanner(QHBoxLayout):
 
 		if self.missions != []:
 			divideLayout.insertRow(0,QHLine())
-
+	
 		self.missionList.addRow(divideLayout)
 		self.missions.append(divideLayout)
-
+		
 
 
 	def combine(self):
@@ -2009,7 +2107,7 @@ class buttons(QGridLayout):
 		super().__init__()
 
 		
-		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0], ["Rotasyon", 3, 1] ]
+		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0], ["Rotasyon (Kompleks)", 3, 1] , ["Rotasyon (Basit)" ,3,2] ]
 
 		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
@@ -2044,6 +2142,8 @@ class buttons(QGridLayout):
 		self.buttons[9].clicked.connect(self.mission_plan)
 
 		self.buttons[10].clicked.connect(self.mission_rotasyon)
+
+		self.buttons[11].clicked.connect(self.mission_rotasyon_simple)
 
 
 	def DroneTakeOff(self):
@@ -2090,6 +2190,11 @@ class buttons(QGridLayout):
 	def mission_rotasyon(self):
 		dialog = QDialog()
 		form = Form_Rotasyon(dialog)
+		self.CreateDialog(form, dialog)
+
+	def mission_rotasyon_simple(self):
+		dialog = QDialog()
+		form = Form_Rotasyon_Simple(dialog)
 		self.CreateDialog(form, dialog)
 	
 	def mission_hareket(self):
@@ -2264,6 +2369,7 @@ class Window(QWidget):
 	def showTime(self):
 		self.table.update_labels()
 		self.group_table.UpdateLabels()
+	
 
 	def showTimeSim(self):
 		tmp_groups =[]
@@ -2298,6 +2404,7 @@ class Window(QWidget):
 
 
 w = Window()
+
 sys.exit(App.exec())
 
 

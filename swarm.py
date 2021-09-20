@@ -1,26 +1,4 @@
-# -*- coding: utf-8 -*-
-#
-#     ||          ____  _ __
-#  +------+      / __ )(_) /_______________ _____  ___
-#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
-#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
-#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
-#
-#  Copyright (C) 2016 Bitcraze AB
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA  02110-1301, USA.
+
 from threading import Thread
 
 from cflib.crazyflie import Crazyflie
@@ -28,19 +6,13 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 import traceback
 
 class _Factory:
-    """
-    Default Crazyflie factory class.
-    """
 
     def construct(self, uri):
         return SyncCrazyflie(uri)
 
 
 class CachedCfFactory:
-    """
-    Factory class that creates Crazyflie instances with TOC caching
-    to reduce connection time.
-    """
+
 
     def __init__(self, ro_cache=None, rw_cache=None):
         self.ro_cache = ro_cache
@@ -52,25 +24,10 @@ class CachedCfFactory:
 
 
 class Swarm:
-    """
-    Runs a swarm of Crazyflies. It implements a functional-ish style of
-    sequential or parallel actions on all individuals of the swarm.
 
-    When the swarm is connected, a link is opened to each Crazyflie through
-    SyncCrazyflie instances. The instances are maintained by the class and are
-    passed in as the first argument in swarm wide actions.
-    """
 
     def __init__(self, uris, factory=_Factory()):
-        """
-        Constructs a Swarm instance and instances used to connect to the
-        Crazyflies
-
-        :param uris: A set of uris to use when connecting to the Crazyflies in
-        the swarm
-        :param factory: A factory class used to create the instances that are
-         used to open links to the Crazyflies. Mainly used for unit testing.
-        """
+        
         self._cfs = {}
         self._is_open = False
 
@@ -78,9 +35,7 @@ class Swarm:
             self._cfs[uri] = factory.construct(uri)
 
     def open_links(self):
-        """
-        Open links to all individuals in the swarm
-        """
+
         if self._is_open:
             raise Exception('Already opened')
 
@@ -178,8 +133,7 @@ class Swarm:
             threads.append(thread)
             thread.start()
 
-        #for thread in threads:
-        #    thread.join()
+     
 
         if reporter.is_error_reported():
             first_error = reporter.errors[0]

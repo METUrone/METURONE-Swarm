@@ -32,7 +32,7 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes.clear()
 
 
-        self.axes.set_zlim(0,self.floor)
+        self.axes.set_zlim(0,4)
         self.axes.set_xlim(-self.floor,self.floor)
         self.axes.set_ylim(-self.floor,self.floor)
     
@@ -97,7 +97,7 @@ class Simulation(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.sc = MplCanvas( 5, 3, dpi=100)
+        self.sc = MplCanvas( 5, 8, dpi=100)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)

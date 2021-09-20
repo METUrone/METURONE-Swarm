@@ -80,6 +80,8 @@ class Uav():
 		self.circle_center = None
 		self.circle_radius = None
 		self.circle_radian = None
+		self.start_radian = None
+		self.end_radian = None
 
 		self.circle_with_param = False
 		self.circle_param_deg = None
@@ -144,6 +146,7 @@ class Uav():
 			self.SetState(State.CIRCLE)
 		
 		else:
+		
 			alpha = param[0]
 			sure = param[1]
 
@@ -159,7 +162,9 @@ class Uav():
 
 	def StopCircle(self):
 		self.dest = self.GetPose()
-		print("Stop Circle")
+		self.start_radian = None
+		self.end_radian = None
+		self.circle_with_param = False
 		self.SetState(State.HOVER)
 		
 	def GetDroneNo(self):
@@ -197,6 +202,20 @@ class Uav():
 		
 	def init_Swarm(self,swarms): # Diğer Droneların Konumu için gerekli
 		self.swarms = swarms
+
+	def StartCircleSimple(self,center,alpha,side):
+		self.circle_center = center
+		pose = self.GetDest()
+		self.circle_radius = np.linalg.norm( np.array(pose) - np.array(self.circle_center) )
+		self.circle_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1])
+		self.start_radian = 0
+		self.end_radian = alpha
+		if side:
+			self.circle_inc = -0.005
+		else:
+			self.circle_inc = 0.005
+
+		self.SetState(State.CIRCLE)
 
 	def Update(self,x,y,z):
 		self.info["X"] = x
@@ -265,7 +284,26 @@ class Uav():
 
 	def CalculateCircleSpeed(self):
 
-		if self.circle_with_param == False:
+		
+		if self.start_radian != None:
+			
+			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
+			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
+			self.circle_radian += self.circle_inc
+			self.start_radian+= abs(self.circle_inc)
+			if self.start_radian >= self.end_radian:
+
+				self.StopCircle()
+				
+				return
+
+			speed_x = ((x - self.info["X"]) ) 
+			speed_y = ((y - self.info["Y"]) ) 
+			speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
+			
+			return [speed_x,speed_y,speed_z]
+		
+		elif self.circle_with_param == False:
 			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
 			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
 			self.circle_radian += 0.005
@@ -273,8 +311,6 @@ class Uav():
 			speed_x = ((x - self.info["X"]) ) 
 			speed_y = ((y - self.info["Y"]) ) 
 			speed_z = ((self.circle_center[2] - self.info["Z"]) ) 
-
-
 			
 			return [speed_x,speed_y,speed_z]
 		
@@ -289,7 +325,7 @@ class Uav():
 			pose = self.GetPose()
 			real_radian = math.atan2(pose[0] - self.circle_center[0] , pose[1] - self.circle_center[1])
 			angle = 180 - abs(abs(math.degrees(self.circle_starting_radian) - math.degrees(real_radian)) - 180)
-			print(total_duration.total_seconds(), angle)
+		
 			
 			if self.circle_a_b == CircleState.A:
 				if angle > 178:
@@ -360,7 +396,7 @@ class Uav():
 		speed[0] *= 0.1
 		speed[1] *= 0.1
 
-		print("circle " , speed)
+
 		return [speed[0],speed[1],0.0]
 
 	
@@ -402,7 +438,7 @@ class Uav():
 		speed[1]*= self.speed_clip_go
 		speed[2]*= self.speed_clip_go
 
-		print("normal",speed)
+	
 
 
 		return speed
@@ -416,7 +452,7 @@ class Uav():
 				pose = np.array(center) + uav.distance_to_center
 				uav.SetDest(pose[0] , pose[1] ,center[2])
 				uav.SetState(State.HOVER)
-				print(uav.GetDest())
+			
 
 
 	def CalculateTrajectorySpeed(self):
@@ -452,7 +488,6 @@ class Uav():
 		
 		#closest_point = np.array(intersect_point_line(curr_pose,self.trajectory_start_pose,self.trajectory_end_pose)[0])
 		closest_point = np.array(self.trajectory_start_pose) + np.array(result) * (datetime.datetime.now() - self.trajectory_start_time).total_seconds()
-		print(closest_point, curr_pose,(datetime.datetime.now() - self.trajectory_start_time).total_seconds())
 		closest_vector = closest_point - curr_pose
 		closest_vector *= self.trajectory_correction_constant
 		return np.array(result) + np.array([closest_vector[0],closest_vector[1],0])

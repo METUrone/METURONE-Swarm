@@ -31,10 +31,13 @@ class Groups:
 
     def RemoveUav(self,group,uav):
         self.groups[group].remove(uav)
+        if self.groups[group] == []:
+            self.DelFormationInfo(group)
 
 
     def DelFormationInfo(self,group):
-        del self.formation_info[grup] 
+        del self.formation_info[group] 
+        self.groups.pop(group)
 
     def SplitGroup(self,first,uavs):
 
@@ -83,4 +86,5 @@ class Groups:
 
         
 groups = Groups()
+
 
