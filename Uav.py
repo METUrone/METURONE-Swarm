@@ -211,9 +211,11 @@ class Uav():
 		self.start_radian = 0
 		self.end_radian = alpha
 		if side:
-			self.circle_inc = -0.005
+			self.circle_inc = -0.05
 		else:
-			self.circle_inc = 0.005
+			self.circle_inc = 0.05
+
+		
 
 		self.SetState(State.CIRCLE)
 
@@ -284,9 +286,8 @@ class Uav():
 
 	def CalculateCircleSpeed(self):
 
-		
 		if self.start_radian != None:
-			
+		
 			x = self.circle_center[0] + self.circle_radius * math.sin(self.circle_radian)
 			y = self.circle_center[1] + self.circle_radius * math.cos(self.circle_radian)
 			self.circle_radian += self.circle_inc

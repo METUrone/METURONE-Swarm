@@ -25,7 +25,6 @@ import subprocess, sys
 # Change uris and sequences according to your setup
 logging.basicConfig(level=logging.ERROR)
 
-deques = [collections.deque(maxlen=1)] * 5
 logs = [""]*Max_Uav_Number
 
 
@@ -47,9 +46,9 @@ class Commander:
 
 		with Swarm(uris, factory=factory) as swarm:
 
-			swarm.parallel_safe(wait_for_param_download)
+			swarm.parallel(wait_for_param_download)
 
-			swarm.parallel_safe(run_sequence , args_dict = self.seq_args )
+			swarm.parallel(run_sequence , args_dict = self.seq_args )
 
 
 	
@@ -112,7 +111,7 @@ def run_sequence(scf,sequence):
 		#uavList[DroneID].SetDest(uavList[DroneID].info["X"] , uavList[DroneID].info["Y"],1.0)
 		while uavList[DroneID].GetState() != State.NOT_CONNECTED:
 			
-			
+			info = logger._queue.get()[1]
 
 			uavList[DroneID].Update(info["stateEstimate.x"],info["stateEstimate.y"],info["stateEstimate.z"])
 			uavList[DroneID].info["Batarya"] = info["pm.vbat"]
@@ -133,7 +132,8 @@ def run_sequence(scf,sequence):
 			if speed is not None:
 				collision_speed = uavList[DroneID].CalculateCollisionSpeed()
 				cf.commander.send_velocity_world_setpoint(collision_speed[0] + speed[0], collision_speed[1] + speed[1], speed[2] + collision_speed[2], 0)
-				pass
+				
+			
 		ConsoleOutput("Connection is broken with UAV {}".format(DroneID))
 
 	except Exception as e:
