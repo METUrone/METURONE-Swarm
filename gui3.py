@@ -26,7 +26,8 @@ class Map(QWidget):
         self.points = []
         self.lines = []
         self.form = form
-        for i in range(0,size,40):
+        self.grid_num = 40
+        for i in range(0,size,self.grid_num):
             self.lines.append([0,i,size,i])
             self.lines.append([i,0,i,size])
 
@@ -35,14 +36,14 @@ class Map(QWidget):
     def mousePressEvent(self, e):
         if e.pos().x()> self.size or e.pos().y() > self.size:
             return
-        if e.pos().x()%40 < 20:
-            x = e.pos().x() - e.pos().x() % 40
+        if e.pos().x()%self.grid_num < self.grid_num/2:
+            x = e.pos().x() - e.pos().x() % self.grid_num
         else:
-            x = e.pos().x() + 40 - e.pos().x() % 40
-        if e.pos().y()%40 < 20:
-            y = e.pos().y() - e.pos().y() % 40
+            x = e.pos().x() + self.grid_num - e.pos().x() % self.grid_num
+        if e.pos().y()%self.grid_num < self.grid_num/2:
+            y = e.pos().y() - e.pos().y() % self.grid_num
         else:
-            y = e.pos().y() + 40 - e.pos().y() % 40
+            y = e.pos().y() + self.grid_num - e.pos().y() % self.grid_num
 			
         if self.points.count([x-5,y-5]) > 0 :
             self.points.remove([x-5,y-5])
@@ -630,7 +631,7 @@ class Form_SetFormation(QFormLayout):
 	def PopUp(self):
 		msg = QMessageBox()
 		msg.setWindowTitle("Dikkat")
-		msg.setText( "Özel formasyonlar için Drone sayısı aynı olmak zorunda." )
+		msg.setText( "Özel formasyonlar için Drone sayısı pozisyon sayısından fazla yada eşit olmak zorunda." )
 		msg.exec_()
 
 	def submit(self):
@@ -655,7 +656,7 @@ class Form_SetFormation(QFormLayout):
 		else :
 		
 			poses = formation_side
-			if len(poses) != len(group):
+			if len(poses) < len(group):
 				self.PopUp()
 				return
 			
@@ -1772,12 +1773,11 @@ class MissionPlanner(QHBoxLayout):
 
 	def StartMission(self):
 		self.CloseDialog()
-		w.setStyleSheet("background-color : grey")
-		App.processEvents()
+	
 		for mission in self.missions:
 			mission.submit()
 			#wait_screen.GoNext()
-		w.setStyleSheet('background-color:#393E46')
+		
 		self.CloseDialog()
 
 
@@ -2279,7 +2279,7 @@ class Window(QWidget):
 		LoadPlannedMissions()
 		
 		super().__init__()
-		self.title = "PyQt5 Frame"
+		self.title = "METURONE SÜRÜ"
 		self.resize(1920,1080)
 		self.setWindowTitle(self.title)
 		self.setStyleSheet('background-color:#393E46')
@@ -2364,7 +2364,7 @@ class Window(QWidget):
 		self.timer=QTimer()
 		self.timer.timeout.connect(self.showTime)
 		self.timer.timeout.connect(self.showTimeSim)
-		self.timer.start(40)
+		self.timer.start(100)
 
 	def showTime(self):
 		self.table.update_labels()
@@ -2372,6 +2372,7 @@ class Window(QWidget):
 	
 
 	def showTimeSim(self):
+	
 		tmp_groups =[]
 		for group in groups.groups:
 			tmp_group = []

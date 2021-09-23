@@ -97,7 +97,7 @@ class Simulation(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.sc = MplCanvas( 5, 8, dpi=100)
+        self.sc = MplCanvas( 5, 4, dpi=100)
 
         hbox = QHBoxLayout()
         hbox.addWidget(self.sc)
