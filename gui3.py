@@ -1119,7 +1119,7 @@ class MapLayout(QHBoxLayout):
 		self.name.setText("formasyon " + str(len(formations.formations)))
 		self.name.setMaximumWidth(100)
 		self.name.setAlignment(Qt.AlignCenter)
-		self.form.addRow("İsim",self.name )
+		self.form.addRow("Name",self.name )
 
 
 
@@ -1127,32 +1127,32 @@ class MapLayout(QHBoxLayout):
 		self.height.setText("1.0")
 		self.height.setMaximumWidth(100)
 		self.height.setAlignment(Qt.AlignCenter)
-		self.form.addRow("Yükseklik",self.height )
+		self.form.addRow("Altitude",self.height )
 
 
 		self.group = QLineEdit()
 		self.group.setText("0")
 		self.group.setMaximumWidth(100)
 		self.group.setAlignment(Qt.AlignCenter)
-		self.form.addRow("Grup",self.group )
+		self.form.addRow("Group",self.group )
 
 		self.uzaklık = QLineEdit()
 		self.uzaklık.setText("0.5")
 		self.uzaklık.setMaximumWidth(100)
 		self.uzaklık.setAlignment(Qt.AlignCenter)
-		self.form.addRow("İki grid arası uzaklık",self.uzaklık)
+		self.form.addRow("Distance between grids",self.uzaklık)
 
 
 
 
 
-		calculate = QPushButton("Hesapla")
+		calculate = QPushButton("Calculate")
 		self.form.addRow(calculate)
 		calculate.clicked.connect(self.calculate)
 
 		self.form.setVerticalSpacing(20)
 
-		save_button = QPushButton("Formasyonu Kaydet")
+		save_button = QPushButton("Save Formation")
 		save_button.clicked.connect(self.SaveFormation)
 		self.form.addWidget(save_button)
 
@@ -1311,20 +1311,20 @@ class TrajectoryMap(QHBoxLayout):
 		self.name.setText("Trajectory " + str(len(formations.trajectories)))
 		self.name.setMaximumWidth(100)
 		self.name.setAlignment(Qt.AlignCenter)
-		self.form.addRow("İsim",self.name )
+		self.form.addRow("Name",self.name )
 
 		self.height = QLineEdit()
 		self.height.setText("1.0")
 		self.height.setMaximumWidth(100)
 		self.height.setAlignment(Qt.AlignCenter)
-		self.form.addRow("Yükseklik",self.height )
+		self.form.addRow("Altitude",self.height )
 
 
 		self.group = QLineEdit()
 		self.group.setText("0")
 		self.group.setMaximumWidth(100)
 		self.group.setAlignment(Qt.AlignCenter)
-		self.form.addRow("Grup",self.group )
+		self.form.addRow("Group",self.group )
 
 		self.speed = QLineEdit()
 		self.speed.setText("0.3")
@@ -1339,13 +1339,13 @@ class TrajectoryMap(QHBoxLayout):
 		self.uzaklık.setText("0.5")
 		self.uzaklık.setMaximumWidth(100)
 		self.uzaklık.setAlignment(Qt.AlignCenter)
-		self.form.addRow("İki grid arası uzaklık",self.uzaklık)
+		self.form.addRow("Distance between grids",self.uzaklık)
 
 
 
 
 
-		calculate = QPushButton("Hesapla")
+		calculate = QPushButton("Calculate")
 		self.form.addRow(calculate)
 		calculate.clicked.connect(self.calculate)
 
@@ -2004,7 +2004,7 @@ class TrajectoryForPlanner(QFormLayout):
 		self.group.setText("0")
 		self.group.setMaximumWidth(100)
 		self.group.setAlignment(Qt.AlignCenter)
-		self.addRow("Grup",self.group )
+		self.addRow("Group",self.group )
 
 		self.speed = QLineEdit()
 		self.speed.setText("0.3")
@@ -2107,7 +2107,7 @@ class buttons(QGridLayout):
 		super().__init__()
 
 		
-		buttons = [["Bağlantıyı kur",0,0],["Bağlantıyı kes",0,1] ,["Drone Kaldırma/İndirme" , 0,2] , ["Yeni Formasyon",1,0] ,  ["Formasyon ",1,1] , ["Hareket ",1,2] , ["Trajectory",2,0] , ["Sürü Ayırma",2,1] , ["Sürü Birleştirme" , 2 ,2] ,  ["Uçuş Planlaması Yap",3,0], ["Rotasyon (Kompleks)", 3, 1] , ["Rotasyon (Basit)" ,3,2] ]
+		buttons = [["Connect",0,0],["Cut Connection",0,1] ,["Drone Takeoff/Land" , 0,2] , ["Construct Formation",1,0] ,  ["Formation ",1,1] , ["Movement ",1,2] , ["Trajectory",2,0] , ["Swarm Group Divide",2,1] , ["Swarm Group Joining" , 2 ,2] ,  ["Mission Plan",3,0], ["Complex Rotation", 3, 1] , ["Simple Rotation" ,3,2] ]
 
 		buttonIdle = "QPushButton{background-color: lightblue;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;} "
 		buttonPressed = "QPushButton::pressed{background-color : black;color : white}"
@@ -2165,12 +2165,12 @@ class buttons(QGridLayout):
 	def create_Formation(self):
 		dialog = QDialog()
 		form = MapLayout(dialog)
-		self.CreateDialog2(form,dialog)
+		self.CreateDialog2(form,dialog, False)
 
 	def SetTrajectory(self):
 		dialog = QDialog()
 		form = TrajectoryMap(dialog)
-		self.CreateDialog2(form,dialog)
+		self.CreateDialog2(form,dialog, True)
 
 	
 
@@ -2217,11 +2217,15 @@ class buttons(QGridLayout):
 
 
 
-	def CreateDialog2(self , form,dialog):
+	def CreateDialog2(self , form,dialog, is_trajectory):
 		
 		dialog.resize(1200,1000)
 		dialog.setWindowModality(Qt.ApplicationModal)
 		dialog.setLayout(form)
+		if is_trajectory:
+			dialog.setWindowTitle("Trajectory")
+		else:
+			dialog.setWindowTitle("Construct Formation")
 		dialog.exec_()		
 
 	def CreateDialog(self , form,dialog):
