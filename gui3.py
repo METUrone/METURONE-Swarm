@@ -2279,7 +2279,7 @@ class Window(QWidget):
 		LoadPlannedMissions()
 		
 		super().__init__()
-		self.title = "PyQt5 Frame"
+		self.title = "METURONE Swarm"
 		self.resize(1920,1080)
 		self.setWindowTitle(self.title)
 		self.setStyleSheet('background-color:#393E46')
