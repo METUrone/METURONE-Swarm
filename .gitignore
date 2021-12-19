@@ -1,3 +1,4 @@
-cache/
+cache/**
 logs/
 *.pyc
+__pycache__/**
