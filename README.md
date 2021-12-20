@@ -14,7 +14,7 @@ pip3 install requirements.txt
 That's it! However, if you will use ROS to communicate with your robots, you also need to install ROS from https://wiki.ros.org/ROS/Installation.
 
 # How to use?
-Although the system allows using with any kind of agent, current code only supports Crazyflie agents with OptiTrack systems. To adapt it to your system, you should rewrite `poses.py`, getting the position and orientation information somehow and print it. We are aware that this is not performance-friendly, and will change it soon. There are also Crazyflie-specific code in `commander.py`, you may need to change or delete it according to your needs. 
+Although the system allows using with any kind of agent, current code only supports Crazyflie agents with OptiTrack systems. To adapt it to your system, you should rewrite `poses.py`, get the position and orientation information somehow and print it. We are aware that this is not performance-friendly, and will change it soon. There are also Crazyflie-specific code in `commander.py`, you may need to change or delete it according to your needs. 
 
 You may also implement a different algorithm very easily with `METURONE-Swarm`. The only thing you should do is implementing `calculate_speed` and `CalculateCollisionSpeed` functions in `uav.py`. 
 
